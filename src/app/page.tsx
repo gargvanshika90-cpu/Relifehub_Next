@@ -1,103 +1,176 @@
-import Image from "next/image";
+
+
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  X,
+  UserPlus,
+  LogIn,
+  HeartHandshake,
+} from "lucide-react";
+
+import Navbar from "../../components/navbar";
+import Slidebar from "../../components/sildebar";
+import Feature from "../../components/feature";
+import StatsRow from "../../components/statsrow";
+import Categories from "../../components/categories";
+import Footer from "../../components/footer";
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const [showWelcome, setShowWelcome] = useState(false);
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const user = localStorage.getItem("relifeUser");
+
+    // Check if welcome popup was already seen
+    const popupSeen = localStorage.getItem("welcomePopupSeen");
+
+    // Show popup only for a new visitor
+    if (!user && !popupSeen) {
+      setShowWelcome(true);
+    }
+  }, []);
+
+  // Continue as guest
+  const continueAsGuest = () => {
+    localStorage.setItem("welcomePopupSeen", "true");
+    setShowWelcome(false);
+  };
+
+  // Signup
+  const handleSignup = () => {
+    localStorage.setItem("welcomePopupSeen", "true");
+    setShowWelcome(false);
+
+    router.push("/signup");
+  };
+
+  // Login
+  const handleLogin = () => {
+    localStorage.setItem("welcomePopupSeen", "true");
+    setShowWelcome(false);
+
+    router.push("/login");
+  };
+
+  return (
+    <>
+      {/* ================= NAVBAR ================= */}
+      <Navbar />
+
+      {/* ================= SLIDEBAR / HERO ================= */}
+      <Slidebar />
+
+      {/* ================= FEATURES ================= */}
+      <Feature />
+
+      {/* ================= CATEGORIES ================= */}
+      <Categories />
+
+      {/* ================= STATS ================= */}
+      <StatsRow />
+
+      {/* ================= FOOTER ================= */}
+      <Footer />
+
+      {/* ================================================= */}
+      {/*              FIRST VISIT WELCOME POPUP             */}
+      {/* ================================================= */}
+
+      {showWelcome && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 px-4">
+
+          <div className="relative w-full max-w-md rounded-3xl bg-white p-8 shadow-2xl">
+
+            {/* Close Button */}
+
+            <button
+              onClick={continueAsGuest}
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-100 hover:text-gray-700"
+            >
+              <X size={20} />
+            </button>
+
+            {/* Icon */}
+
+            <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-green-100">
+              <HeartHandshake
+                size={42}
+                className="text-green-600"
+              />
+            </div>
+
+            {/* Heading */}
+
+            <h2 className="mt-6 text-center text-2xl font-bold text-gray-900">
+              Welcome to ReLife Hub! 💚
+            </h2>
+
+            {/* Description */}
+
+            <p className="mt-3 text-center leading-6 text-gray-500">
+              Join our community to donate useful items, discover things
+              you need, and help reduce waste.
+            </p>
+
+            {/* Signup Button */}
+
+            <button
+              onClick={handleSignup}
+              className="mt-7 flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3.5 font-semibold text-white shadow-md transition hover:bg-green-700"
+            >
+              <UserPlus size={20} />
+              Create Account
+            </button>
+
+            {/* Login Button */}
+
+            <button
+              onClick={handleLogin}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border-2 border-green-600 px-5 py-3.5 font-semibold text-green-700 transition hover:bg-green-50"
+            >
+              <LogIn size={20} />
+              Login
+            </button>
+
+            {/* Guest */}
+
+            <button
+              onClick={continueAsGuest}
+              className="mt-5 w-full text-sm font-medium text-gray-500 transition hover:text-green-600"
+            >
+              Continue as Guest
+            </button>
+
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      )}
+    </>
   );
 }
+
+
+
+//  import Navbar from "../../components/navbar"
+// import Slidebar from "../../components/sildebar"
+//  import Feature from "../../components/feature"
+//   import StatsRow from "../../components/statsrow"  
+//  import Categories from "../../components/categories"  
+//    import Footer from "../../components/footer"  
+// export default function Home(){
+//   return(
+//     <>
+//      <Navbar></Navbar>
+//     <Slidebar></Slidebar>
+//     <Feature></Feature>
+//     <Categories></Categories>
+//      <StatsRow></StatsRow>
+//      <Footer></Footer> 
+//        </>
+//   )
+// }
