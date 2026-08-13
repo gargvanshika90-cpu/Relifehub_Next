@@ -52,242 +52,248 @@ export default function LoginPage() {
   // =====================================
   // LOGIN
   // =====================================
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const { email, password } = form;
 
-    const {
-      email,
-      password,
-    } = form;
+  // =====================================
+  // VALIDATION
+  // =====================================
 
+  if (!email || !password) {
+    await Swal.fire({
+      icon: "warning",
+      title: "Missing Information",
+      text: "Please enter email and password.",
+    });
+
+    return;
+  }
+
+  try {
+    // =====================================
+    // LOADING
+    // =====================================
+
+    Swal.fire({
+      title: "Logging In...",
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
 
     // =====================================
-    // VALIDATION
+    // API REQUEST
     // =====================================
 
-    if (!email || !password) {
+    const response = await fetch("/api/login", {
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json",
+      },
+
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
+    });
+
+    const data = await response.json();
+
+    Swal.close();
+
+    // =====================================
+    // API ERROR
+    // =====================================
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        await Swal.fire({
+          icon: "error",
+          title: "Email Not Found",
+          text: data.message || "Email not found.",
+        });
+
+        return;
+      }
+
+      if (response.status === 401) {
+        await Swal.fire({
+          icon: "error",
+          title: "Wrong Password",
+          text: data.message || "Incorrect password.",
+        });
+
+        return;
+      }
+
       await Swal.fire({
-        icon: "warning",
-        title: "Missing Information",
-        text: "Please enter email and password.",
+        icon: "error",
+        title: "Login Failed",
+        text:
+          data.message ||
+          "Something went wrong.",
       });
 
       return;
     }
 
+    // =====================================
+    // CHECK API USER
+    // =====================================
 
-    try {
+    console.log("API USER:", data.user);
 
-      // =====================================
-      // LOADING
-      // =====================================
-
-      Swal.fire({
-        title: "Logging In...",
-        allowOutsideClick: false,
-
-        didOpen: () => {
-          Swal.showLoading();
-        },
+    if (!data.user) {
+      await Swal.fire({
+        icon: "error",
+        title: "Login Error",
+        text: "User information was not received.",
       });
 
+      return;
+    }
 
-      // =====================================
-      // API REQUEST
-      // =====================================
+    // =====================================
+    // CHECK USER ID
+    // =====================================
 
-      const response = await fetch(
-        "/api/login",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            email:
-              email.trim().toLowerCase(),
-
-            password,
-          }),
-        }
-      );
-
-
-      const data =
-        await response.json();
-
-
-      Swal.close();
-
-
-      // =====================================
-      // EMAIL NOT FOUND
-      // =====================================
-
-      if (response.status === 404) {
-
-        await Swal.fire({
-          icon: "error",
-          title: "Email Not Found",
-          text: data.message,
-        });
-
-        return;
-      }
-
-
-      // =====================================
-      // WRONG PASSWORD
-      // =====================================
-
-      if (response.status === 401) {
-
-        await Swal.fire({
-          icon: "error",
-          title: "Wrong Password",
-          text: data.message,
-        });
-
-        return;
-      }
-
-
-      // =====================================
-      // OTHER ERROR
-      // =====================================
-
-      if (!response.ok) {
-
-        await Swal.fire({
-          icon: "error",
-          title: "Login Failed",
-
-          text:
-            data.message ||
-            "Something went wrong.",
-        });
-
-        return;
-      }
-
-
-      // =====================================
-      // CHECK API USER
-      // =====================================
-
-      console.log(
-        "API USER:",
+    if (
+      data.user.id === undefined ||
+      data.user.id === null ||
+      data.user.id === ""
+    ) {
+      console.error(
+        "USER ID MISSING:",
         data.user
       );
 
-
-      // =====================================
-      // SAVE USER DATA
-      // =====================================
-
-      const loggedInUser = {
-
-        id: data.user.id,
-
-        firstName:
-          data.user.firstName || "",
-
-        lastName:
-          data.user.lastName || "",
-
-        email:
-          data.user.email || "",
-
-        // Full name
-        name:
-          `${data.user.firstName || ""} ${
-            data.user.lastName || ""
-          }`.trim(),
-
-        image:
-          data.user.image ||
-          "/profile.png",
-
-        // Default dashboard role
-        role: "Donor",
-      };
-
-
-      console.log(
-        "SAVED USER:",
-        loggedInUser
-      );
-
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(
-          loggedInUser
-        )
-      );
-
-
-      // =====================================
-      // NAVBAR UPDATE
-      // =====================================
-
-      window.dispatchEvent(
-        new Event("userChanged")
-      );
-
-
-      // =====================================
-      // SUCCESS
-      // =====================================
-
       await Swal.fire({
-
-        icon: "success",
-
-        title: "Login Successful",
-
-        text:
-          `Welcome ${loggedInUser.firstName}!`,
-
-        timer: 1500,
-
-        showConfirmButton: false,
-
-      });
-
-
-      // =====================================
-      // DASHBOARD
-      // =====================================
-
-      router.replace("/dashboard");
-
-
-    } catch (error) {
-
-      console.error(
-        "Login Error:",
-        error
-      );
-
-      Swal.close();
-
-      await Swal.fire({
-
         icon: "error",
-
-        title: "Network Error",
-
+        title: "Login Error",
         text:
-          "Cannot connect to the server.",
-
+          "User ID was not received from the server.",
       });
+
+      return;
     }
-  };
+
+    // =====================================
+    // CREATE LOGGED-IN USER
+    // =====================================
+
+   const loggedInUser = {
+  id: data.user.id,
+  firstName: data.user.firstName || "",
+  lastName: data.user.lastName || "",
+  email: data.user.email || "",
+
+  name: `${data.user.firstName || ""} ${
+    data.user.lastName || ""
+  }`.trim(),
+
+  image: data.user.image || "",
+
+  // IMPORTANT
+  role: data.user.role || "Donor",
+
+  phone: data.user.phone || "",
+  address: data.user.address || "",
+  city: data.user.city || "",
+  state: data.user.state || "",
+  pincode: data.user.pincode || "",
+};
+
+localStorage.setItem(
+  "user",
+  JSON.stringify(loggedInUser)
+);
+
+window.dispatchEvent(
+  new Event("userChanged")
+);
+
+    console.log(
+      "SAVED USER:",
+      loggedInUser
+    );
+
+    // =====================================
+    // SAVE USER IN LOCAL STORAGE
+    // =====================================
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(loggedInUser)
+    );
+
+    // =====================================
+    // VERIFY LOCAL STORAGE
+    // =====================================
+
+    const checkUser =
+      JSON.parse(
+        localStorage.getItem("user")
+      );
+
+    console.log(
+      "LOCAL STORAGE USER:",
+      checkUser
+    );
+
+    console.log(
+      "LOCAL STORAGE USER ID:",
+      checkUser?.id
+    );
+
+    // =====================================
+    // NAVBAR UPDATE
+    // =====================================
+
+    window.dispatchEvent(
+      new Event("userChanged")
+    );
+
+    // =====================================
+    // SUCCESS
+    // =====================================
+
+    await Swal.fire({
+      icon: "success",
+      title: "Login Successful",
+      text:
+        `Welcome ${loggedInUser.firstName}!`,
+      timer: 1500,
+      showConfirmButton: false,
+    });
+
+    // =====================================
+    // DASHBOARD
+    // =====================================
+
+    router.replace("/dashboard");
+
+  } catch (error) {
+    console.error(
+      "Login Error:",
+      error
+    );
+
+    Swal.close();
+
+    await Swal.fire({
+      icon: "error",
+      title: "Network Error",
+      text:
+        "Cannot connect to the server.",
+    });
+  }
+};
 
 
   

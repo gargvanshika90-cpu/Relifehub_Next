@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import { Heart, ShoppingCart, Leaf, ShieldCheck, Truck, IndianRupee } from "lucide-react";
   import Navbar from "../../../../components/navbar";
 const products = [
@@ -28,7 +29,95 @@ const products = [
  
 ];
 
+
 export default function FoodPage() {
+  const [favorites, setFavorites] = useState([]);
+
+useEffect(() => {
+  const saved =
+    JSON.parse(
+      localStorage.getItem("favorites")
+    ) || [];
+
+  setFavorites(saved);
+}, []);
+const toggleFavorite = (product) => {
+  const saved =
+    JSON.parse(
+      localStorage.getItem("favorites")
+    ) || [];
+
+  const exists = saved.some(
+    (item) =>
+      String(item.id) === String(product.id)
+  );
+
+  let updatedFavorites;
+
+  if (exists) {
+    // REMOVE
+    updatedFavorites = saved.filter(
+      (item) =>
+        String(item.id) !==
+        String(product.id)
+    );
+  } else {
+    // ADD
+    updatedFavorites = [
+      ...saved,
+      {
+        id: product.id,
+
+        name:
+          product.name ||
+          product.productName ||
+          product.itemName,
+
+        productName:
+          product.productName ||
+          product.name ||
+          product.itemName,
+
+        itemName:
+          product.itemName ||
+          product.name ||
+          product.productName,
+
+        category:
+          product.category,
+
+        image:
+          product.image ||
+          product.images?.[0] ||
+          null,
+
+        description:
+          product.description || "",
+
+        detailLink:
+          product.detailLink || "",
+
+        addedAt:
+          new Date().toISOString(),
+      },
+    ];
+  }
+
+  localStorage.setItem(
+    "favorites",
+    JSON.stringify(
+      updatedFavorites
+    )
+  );
+
+  setFavorites(
+    updatedFavorites
+  );
+
+  window.dispatchEvent(
+    new Event("favoritesChanged")
+  );
+};
   return (
     <>
     <Navbar></Navbar>
@@ -190,14 +279,33 @@ export default function FoodPage() {
               className="bg-white rounded-2xl shadow hover:shadow-xl duration-300 p-4 relative"
             >
 
-              <button className="absolute right-4 top-4">
+              <div className="relative">
 
-                <Heart
-                  size={20}
-                  className="text-gray-400 hover:text-red-500"
-                />
+  
 
-              </button>
+  {/* FAVORITE BUTTON */}
+
+  <button
+    onClick={() =>
+      toggleFavorite(item)
+    }
+    className="absolute top-3 right-3 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center hover:scale-110 transition"
+  >
+    <Heart
+      size={21}
+      className={
+        favorites.some(
+          (item) =>
+            String(item.id) ===
+            String(item.id)
+        )
+          ? "text-white fill-red-500"
+          : "text-gray-500"
+      }
+    />
+  </button>
+
+</div>
 
               <div className="flex justify-center">
 
