@@ -50,14 +50,10 @@ export default function Sidebar() {
     },
     {
       name: "Categories",
-      href: "/categories",
+      href: "/dashboard/categories",
       icon: Grid3X3,
     },
-    {
-      name: "Volunteers",
-      href: "/dashboard/volunteers",
-      icon: Users,
-    },
+   
     {
       name: "Impact",
       href: "/dashboard/impact",

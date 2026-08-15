@@ -1,5 +1,5 @@
 "use client";
-
+import Sidebar from "@/components/dashboard/Sidebar";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -12,6 +12,7 @@ import {
   Save,
   Loader2,
   ArrowLeft,
+ 
 } from "lucide-react";
 
 import Swal from "sweetalert2";
@@ -47,233 +48,160 @@ export default function SettingsPage() {
   // LOAD LOGGED-IN USER
   // ==========================================
 
-  useEffect(() => {
-    const loadUser = async () => {
+useEffect(() => {
+  const loadUser = async () => {
+    try {
+      const savedUser = localStorage.getItem("user");
+
+      console.log("LOCAL STORAGE USER:", savedUser);
+
+      if (!savedUser) {
+        router.replace("/login");
+        return;
+      }
+
+      let loggedInUser;
+
       try {
-        // --------------------------------------
-        // GET USER FROM LOCAL STORAGE
-        // --------------------------------------
-
-        const savedUser = localStorage.getItem("user");
-
-        console.log("LOCAL STORAGE USER:", savedUser);
-
-        if (!savedUser) {
-          router.replace("/login");
-          return;
-        }
-
-        let loggedInUser;
-
-        try {
-          loggedInUser = JSON.parse(savedUser);
-        } catch (error) {
-          console.error(
-            "INVALID LOCAL STORAGE USER:",
-            error
-          );
-
-          return;
-        }
-
-        console.log(
-          "LOGGED IN USER:",
-          loggedInUser
-        );
-
-        // --------------------------------------
-        // CHECK USER ID
-        // --------------------------------------
-
-        if (
-          loggedInUser?.id === undefined ||
-          loggedInUser?.id === null ||
-          loggedInUser?.id === ""
-        ) {
-          console.error(
-            "USER ID MISSING:",
-            loggedInUser
-          );
-
-          localStorage.removeItem("user");
-
-          await Swal.fire({
-            icon: "error",
-            title: "Session Expired",
-            text: "Please login again.",
-          });
-
-          router.replace("/login");
-          return;
-        }
-
-        // --------------------------------------
-        // CONVERT ID TO NUMBER
-        // --------------------------------------
-const userId = String(loggedInUser.id);
-
-console.log("USER ID:", userId);
-
-if (!userId || userId === "undefined") {
-  await Swal.fire({
-    icon: "error",
-    title: "Invalid User ID",
-    text: "Please login again.",
-  });
-
-  router.replace("/login");
-  return;
-}
-
-
-
-        // --------------------------------------
-        // GET USER FROM DATABASE
-        // --------------------------------------
-
-        const response = await fetch(
-          `/api/user/${userId}`,
-          {
-            method: "GET",
-            cache: "no-store",
-          }
-        );
-
-        const data = await response.json();
-
-        console.log(
-          "USER API RESPONSE:",
-          data
-        );
-
-        // --------------------------------------
-        // API ERROR
-        // --------------------------------------
-
-        if (!response.ok || !data.success) {
-          throw new Error(
-            data.message ||
-              "Unable to load user"
-          );
-        }
-
-        // --------------------------------------
-        // DATABASE USER
-        // --------------------------------------
-
-        const dbUser = data.user;
-
-        console.log(
-          "DATABASE USER:",
-          dbUser
-        );
-
-        setUser(dbUser);
-
-        // --------------------------------------
-        // AUTOMATICALLY FILL FORM
-        // --------------------------------------
-
-        setForm({
-          firstName:
-            dbUser.firstName || "",
-
-          lastName:
-            dbUser.lastName || "",
-
-          email:
-            dbUser.email || "",
-
-          phone:
-            dbUser.phone || "",
-
-          address:
-            dbUser.address || "",
-
-          city:
-            dbUser.city || "",
-
-          state:
-            dbUser.state || "",
-
-          pincode:
-            dbUser.pincode || "",
-
-          image:
-            dbUser.image || "",
-        });
-
-        // --------------------------------------
-        // UPDATE LOCAL STORAGE
-        // --------------------------------------
-
-        const updatedUser = {
-          ...loggedInUser,
-
-          ...dbUser,
-
-          id: dbUser.id,
-
-          firstName:
-            dbUser.firstName || "",
-
-          lastName:
-            dbUser.lastName || "",
-
-          email:
-            dbUser.email || "",
-
-          name:
-            `${dbUser.firstName || ""} ${
-              dbUser.lastName || ""
-            }`.trim(),
-
-          role:
-            dbUser.role ||
-            loggedInUser.role ||
-            "Donor",
-
-          image:
-            dbUser.image ||
-            loggedInUser.image ||
-            "",
-        };
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(updatedUser)
-        );
-
-        setUser(updatedUser);
-
-        // --------------------------------------
-        // UPDATE NAVBAR
-        // --------------------------------------
-
-        window.dispatchEvent(
-          new Event("userChanged")
-        );
+        loggedInUser = JSON.parse(savedUser);
       } catch (error) {
-        console.error(
-          "ERROR LOADING SETTINGS:",
-          error
-        );
+        console.error("INVALID USER JSON:", error);
+        localStorage.removeItem("user");
+        router.replace("/login");
+        return;
+      }
 
+      // Get ID from localStorage
+      const userId = String(loggedInUser?.id || "").trim();
+
+      console.log("USER ID:", userId);
+
+      if (
+        !userId ||
+        userId === "undefined" ||
+        userId === "null"
+      ) {
         await Swal.fire({
           icon: "error",
-          title: "Unable to load profile",
-          text:
-            error.message ||
-            "Something went wrong.",
+          title: "Invalid User ID",
+          text: "Please login again.",
         });
-      } finally {
-        setLoading(false);
+
+        localStorage.removeItem("user");
+        router.replace("/login");
+        return;
       }
-    };
 
-    loadUser();
-  }, [router]);
+      // ==========================================
+      // IMPORTANT: GET REQUEST
+      // NO BODY HERE
+      // ==========================================
 
+      const response = await fetch(
+        `/api/user/${encodeURIComponent(userId)}`,
+        {
+          method: "GET",
+          cache: "no-store",
+        }
+      );
+
+      console.log("GET STATUS:", response.status);
+
+      const data = await response.json();
+
+      console.log("GET USER RESPONSE:", data);
+
+      if (!response.ok || !data.success) {
+        throw new Error(
+          data.message || "Unable to load user"
+        );
+      }
+
+      const dbUser = data.user;
+
+      if (!dbUser) {
+        throw new Error("User not found");
+      }
+
+      // ==========================================
+      // FILL USER
+      // ==========================================
+
+      setUser(dbUser);
+
+      setForm({
+        firstName: dbUser.firstName || "",
+        lastName: dbUser.lastName || "",
+        email: dbUser.email || "",
+        phone: dbUser.phone || "",
+        address: dbUser.address || "",
+        city: dbUser.city || "",
+        state: dbUser.state || "",
+        pincode: dbUser.pincode || "",
+        image: dbUser.image || "",
+      });
+
+      // ==========================================
+      // UPDATE LOCAL STORAGE
+      // ==========================================
+
+      const updatedUser = {
+        ...loggedInUser,
+        ...dbUser,
+
+        id: String(dbUser.id || userId),
+
+        firstName: dbUser.firstName || "",
+        lastName: dbUser.lastName || "",
+        email: dbUser.email || "",
+
+        name: `${dbUser.firstName || ""} ${
+          dbUser.lastName || ""
+        }`.trim(),
+
+        role:
+          dbUser.role ||
+          loggedInUser.role ||
+          "Donor",
+
+        image:
+          dbUser.image ||
+          loggedInUser.image ||
+          "",
+      };
+
+      localStorage.setItem(
+        "user",
+        JSON.stringify(updatedUser)
+      );
+
+      setUser(updatedUser);
+
+      window.dispatchEvent(
+        new Event("userChanged")
+      );
+
+    } catch (error) {
+      console.error(
+        "ERROR LOADING SETTINGS:",
+        error
+      );
+
+      await Swal.fire({
+        icon: "error",
+        title: "Unable to load profile",
+        text:
+          error?.message ||
+          "Something went wrong.",
+      });
+
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  loadUser();
+}, [router]);
   // ==========================================
   // HANDLE INPUT CHANGE
   // ==========================================
@@ -419,26 +347,23 @@ if (!userId || userId === "undefined") {
       return;
     }
 
-    const loggedInUser =
-      JSON.parse(savedUser);
+    const loggedInUser = JSON.parse(savedUser);
 
-    const userId = Number(
-      loggedInUser.id
-    );
+const userId = String(loggedInUser?.id || "").trim();
 
-    if (
-      !Number.isInteger(userId) ||
-      userId <= 0
-    ) {
-      await Swal.fire({
-        icon: "error",
-        title: "Invalid User ID",
-        text: "Please login again.",
-      });
+console.log("SAVE USER ID:", userId);
 
-      localStorage.removeItem("user");
+if (!userId || userId === "undefined" || userId === "null") {
+  await Swal.fire({
+    icon: "error",
+    title: "Invalid User ID",
+    text: "Please login again.",
+  });
 
-      router.replace("/login");
+  localStorage.removeItem("user");
+
+  router.replace("/login");
+
 
       return;
     }
@@ -453,7 +378,7 @@ if (!userId || userId === "undefined") {
       const response = await fetch(
         `/api/user/${userId}`,
         {
-          method: "PATCH",
+          method: "GET",
 
           headers: {
             "Content-Type": "application/json",
@@ -650,32 +575,35 @@ if (!userId || userId === "undefined") {
   // ==========================================
   // LOADING
   // ==========================================
+if (loading) {
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="flex flex-col items-center gap-3">
+        <Loader2
+          size={38}
+          className="animate-spin text-green-700"
+        />
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2
-            size={38}
-            className="animate-spin text-green-700"
-          />
-
-          <p className="text-gray-600">
-            Loading profile...
-          </p>
-        </div>
+        <p className="text-gray-600">
+          Loading profile...
+        </p>
       </div>
-    );
-  }
-
+    </div>
+  );
+}
   // ==========================================
   // PAGE
   // ==========================================
 
   return (
-    <div className="min-h-screen bg-gray-50 py-10 px-5">
+   
+  <>
+    <Sidebar />
 
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50 py-10 px-5 ml-64">
+  
+
+      <div className="max-w-7xl mx-auto" >
 
         {/* =====================================
             HEADER
@@ -1236,5 +1164,6 @@ if (!userId || userId === "undefined") {
       </div>
 
     </div>
+  </>
   );
 }
