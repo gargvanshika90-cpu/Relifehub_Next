@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Tag, Leaf, Users } from "lucide-react";
 import { Heart, ShoppingCart, Zap } from "lucide-react";
 import Swal from "sweetalert2";
+ import Navbar from "../../../../components/navbar";
 import {
   ShieldCheck,
   IndianRupee,
@@ -65,6 +66,8 @@ const addWishlist = () => {
   });
 };
   return (
+    <>
+    <Navbar></Navbar>
     <div className="bg-gray-50 min-h-screen">
 
       {/* Hero Section */}
@@ -416,5 +419,6 @@ const addWishlist = () => {
       </section>
 
     </div>
+    </>
   );
 }

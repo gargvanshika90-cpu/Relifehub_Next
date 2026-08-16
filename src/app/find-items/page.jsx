@@ -9,7 +9,7 @@ const items = [
     category: "Clothes",
     location: "New Delhi",
     time: "2 days ago",
-    image: "/images/jacket.jpg",
+    image: "/images/jacket.png",
   },
   {
     id: 2,
@@ -17,7 +17,7 @@ const items = [
     category: "Furniture",
     location: "Gurugram",
     time: "1 day ago",
-    image: "/images/table.jpg",
+    image: "/images/table.png",
   },
   {
     id: 3,
@@ -25,7 +25,7 @@ const items = [
     category: "Books",
     location: "Noida",
     time: "3 days ago",
-    image: "/images/books.jpg",
+    image: "/images/books.png",
   },
   {
     id: 4,
@@ -33,7 +33,7 @@ const items = [
     category: "Electronics",
     location: "Delhi",
     time: "2 days ago",
-    image: "/images/microwave.jpg",
+    image: "/images/microwave.png",
   },
   {
     id: 5,
@@ -41,7 +41,7 @@ const items = [
     category: "Others",
     location: "Faridabad",
     time: "1 day ago",
-    image: "/images/bag.jpg",
+    image: "/images/bag.png",
   },
   {
     id: 6,
@@ -49,7 +49,7 @@ const items = [
     category: "Others",
     location: "Ghaziabad",
     time: "3 days ago",
-    image: "/images/cycle.jpg",
+    image: "/images/cycle.png",
   },
   {
     id: 7,
@@ -57,7 +57,7 @@ const items = [
     category: "Furniture",
     location: "Faridabad",
     time: "5 days ago",
-    image: "/images/sofa.jpg",
+    image: "/images/sofa.png",
   },
   {
     id: 8,
@@ -65,7 +65,7 @@ const items = [
     category: "Toys",
     location: "Noida",
     time: "2 days ago",
-    image: "/images/toys.jpg",
+    image: "/images/toys.png",
   },
 ];
 
@@ -141,23 +141,20 @@ export default function FindItemsPage() {
               className="bg-white rounded-2xl overflow-hidden shadow hover:shadow-xl duration-300"
             >
 
-              <div className="relative">
+         <div className="relative w-full h-48 bg-white rounded-t-2xl overflow-hidden">
+  <img
+    src={item.image}
+    alt={item.name}
+    className="w-full h-full object-contain"
+  />
 
-                <img
-                  src={item.image}
-                  className="w-full h-52 object-cover"
-                />
-
-                <button className="absolute top-3 right-3 bg-white p-2 rounded-full shadow">
-
-                  <Heart
-                    size={18}
-                    className="text-red-500"
-                  />
-
-                </button>
-
-              </div>
+  <button className="absolute top-4 right-4 bg-white w-10 h-10 rounded-full shadow flex items-center justify-center">
+    <Heart
+      size={20}
+      className="text-red-500"
+    />
+  </button>
+</div>
 
               <div className="p-4">
 

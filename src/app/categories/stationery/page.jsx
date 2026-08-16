@@ -82,106 +82,164 @@ export default function StationeryPage() {
           HERO SECTION
       ================================================== */}
 
-      <section className="bg-gradient-to-r from-blue-50 via-indigo-50 to-purple-50">
-        <div className="max-w-7xl mx-auto px-6 py-12">
-          <div className="grid lg:grid-cols-2 gap-10 items-center">
-            {/* LEFT CONTENT */}
+   {/* =========================================
+    STATIONERY HERO SECTION
+========================================= */}
 
-            <div>
-              <h1 className="text-6xl font-extrabold text-gray-900">
-                Stationery
+<section className="bg-[#f0efff]">
 
-                <span className="ml-3 text-indigo-600">
-                  ✏️
-                </span>
-              </h1>
+  <div className="max-w-7xl mx-auto px-6 py-10">
 
-              <p className="text-xl text-gray-600 mt-6">
-                Find useful stationery ready for a new owner.
-              </p>
+    <div className="grid lg:grid-cols-2 gap-8 items-center">
 
-              <p className="text-lg text-gray-500 mt-2">
-                Study better, create more, reuse more,
-                and reduce waste.
-              </p>
+      {/* =====================================
+          LEFT CONTENT
+      ===================================== */}
 
-              {/* FEATURES */}
+      <div className="py-6">
 
-              <div className="grid md:grid-cols-3 gap-6 mt-10">
-                {/* Affordable */}
+        {/* TITLE */}
 
-                <div className="flex gap-4">
-                  <div className="h-14 w-14 rounded-full bg-white shadow flex items-center justify-center">
-                    <Tag className="text-indigo-600" />
-                  </div>
+        <div className="flex items-center gap-4">
 
-                  <div>
-                    <h3 className="font-bold">
-                      Affordable
-                    </h3>
+          <h1 className="text-5xl md:text-6xl font-extrabold text-slate-950">
+            Stationery
+          </h1>
 
-                    <p className="text-sm text-gray-500">
-                      Quality stationery
-                      at low prices
-                    </p>
-                  </div>
-                </div>
+          <span className="text-5xl">
+            📚
+          </span>
 
-                {/* Sustainable */}
-
-                <div className="flex gap-4">
-                  <div className="h-14 w-14 rounded-full bg-white shadow flex items-center justify-center">
-                    <Leaf className="text-green-600" />
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Sustainable
-                    </h3>
-
-                    <p className="text-sm text-gray-500">
-                      Reuse & reduce
-                      stationery waste
-                    </p>
-                  </div>
-                </div>
-
-                {/* Community */}
-
-                <div className="flex gap-4">
-                  <div className="h-14 w-14 rounded-full bg-white shadow flex items-center justify-center">
-                    <Users className="text-indigo-600" />
-                  </div>
-
-                  <div>
-                    <h3 className="font-bold">
-                      Community First
-                    </h3>
-
-                    <p className="text-sm text-gray-500">
-                      Help students &
-                      build a better community
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* RIGHT IMAGE */}
-
-            <div>
-              <Image
-                src="/stationery/banner.png"
-                alt="Stationery"
-                width={700}
-                height={500}
-                className="w-full object-contain"
-              />
-            </div>
-          </div>
         </div>
-      </section>
 
+
+        {/* DESCRIPTION */}
+
+        <p className="text-xl text-slate-800 mt-5">
+          Find useful stationery ready for a new home.
+        </p>
+
+        <p className="text-lg text-slate-600 mt-2">
+          Learn more, waste less, and share with others.
+        </p>
+
+
+        {/* =================================
+            FEATURES
+        ================================= */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10">
+
+          {/* AFFORDABLE */}
+
+          <div className="flex items-center gap-3">
+
+            <div className="w-14 h-14 shrink-0 rounded-full bg-white shadow-md flex items-center justify-center">
+
+              <Tag
+                size={25}
+                className="text-green-600"
+              />
+
+            </div>
+
+            <div>
+
+              <h3 className="font-bold text-gray-900">
+                Affordable
+              </h3>
+
+              <p className="text-sm text-slate-600 leading-5">
+                Quality items at low prices
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* SUSTAINABLE */}
+
+          <div className="flex items-center gap-3">
+
+            <div className="w-14 h-14 shrink-0 rounded-full bg-white shadow-md flex items-center justify-center">
+
+              <Leaf
+                size={25}
+                className="text-green-600"
+              />
+
+            </div>
+
+            <div>
+
+              <h3 className="font-bold text-gray-900">
+                Sustainable
+              </h3>
+
+              <p className="text-sm text-slate-600 leading-5">
+                Reuse & reduce waste
+              </p>
+
+            </div>
+
+          </div>
+
+
+          {/* COMMUNITY */}
+
+          <div className="flex items-center gap-3">
+
+            <div className="w-14 h-14 shrink-0 rounded-full bg-white shadow-md flex items-center justify-center">
+
+              <Users
+                size={25}
+                className="text-green-600"
+              />
+
+            </div>
+
+            <div>
+
+              <h3 className="font-bold text-gray-900">
+                Community First
+              </h3>
+
+              <p className="text-sm text-slate-600 leading-5">
+                Help others & build community
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      {/* =====================================
+          RIGHT BANNER IMAGE
+      ===================================== */}
+
+      <div className="flex justify-end">
+
+        <Image
+          src="/stationery/banner.png"
+          alt="Stationery items"
+          width={900}
+          height={600}
+          priority
+          className="w-full max-w-[780px] h-auto object-contain"
+        />
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
       {/* ==================================================
           PRODUCTS
       ================================================== */}
