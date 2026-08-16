@@ -275,284 +275,219 @@ useEffect(() => {
   // SAVE PROFILE
   // ==========================================
 
-  const handleSave = async (e) => {
-    e.preventDefault();
+ const handleSave = async (e) => {
+  e.preventDefault();
 
-    // ----------------------------------------
-    // VALIDATION
-    // ----------------------------------------
+  // ==========================================
+  // VALIDATION
+  // ==========================================
 
-    if (!form.firstName.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "First Name Required",
-        text: "Please enter your first name.",
-      });
+  if (!form.firstName.trim()) {
+    Swal.fire({
+      icon: "warning",
+      title: "First Name Required",
+      text: "Please enter your first name.",
+    });
+    return;
+  }
 
-      return;
-    }
+  if (!form.lastName.trim()) {
+    Swal.fire({
+      icon: "warning",
+      title: "Last Name Required",
+      text: "Please enter your last name.",
+    });
+    return;
+  }
 
-    if (!form.lastName.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Last Name Required",
-        text: "Please enter your last name.",
-      });
+  if (!form.email.trim()) {
+    Swal.fire({
+      icon: "warning",
+      title: "Email Required",
+      text: "Please enter your email.",
+    });
+    return;
+  }
 
-      return;
-    }
+  if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
+    Swal.fire({
+      icon: "warning",
+      title: "Invalid Phone Number",
+      text: "Phone number must contain 10 digits.",
+    });
+    return;
+  }
 
-    if (!form.email.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Email Required",
-        text: "Please enter your email.",
-      });
+  if (form.pincode && !/^[0-9]{6}$/.test(form.pincode)) {
+    Swal.fire({
+      icon: "warning",
+      title: "Invalid Pincode",
+      text: "Pincode must contain 6 digits.",
+    });
+    return;
+  }
 
-      return;
-    }
+  // ==========================================
+  // GET LOGGED-IN USER
+  // ==========================================
 
-    if (form.phone && !/^[0-9]{10}$/.test(form.phone)) {
-      Swal.fire({
-        icon: "warning",
-        title: "Invalid Phone Number",
-        text: "Phone number must contain 10 digits.",
-      });
+  const savedUser = localStorage.getItem("user");
 
-      return;
-    }
+  if (!savedUser) {
+    router.replace("/login");
+    return;
+  }
 
-    if (
-      form.pincode &&
-      !/^[0-9]{6}$/.test(form.pincode)
-    ) {
-      Swal.fire({
-        icon: "warning",
-        title: "Invalid Pincode",
-        text: "Pincode must contain 6 digits.",
-      });
+  let loggedInUser;
 
-      return;
-    }
+  try {
+    loggedInUser = JSON.parse(savedUser);
+  } catch (error) {
+    console.error("Invalid user:", error);
 
-    // ----------------------------------------
-    // GET USER ID
-    // ----------------------------------------
+    localStorage.removeItem("user");
+    router.replace("/login");
+    return;
+  }
 
-    const savedUser =
-      localStorage.getItem("user");
+  const userId = String(loggedInUser?.id || "").trim();
 
-    if (!savedUser) {
-      router.replace("/login");
-      return;
-    }
+  if (!userId || userId === "undefined" || userId === "null") {
+    await Swal.fire({
+      icon: "error",
+      title: "Invalid User ID",
+      text: "Please login again.",
+    });
 
-    const loggedInUser = JSON.parse(savedUser);
+    localStorage.removeItem("user");
+    router.replace("/login");
+    return;
+  }
 
-const userId = String(loggedInUser?.id || "").trim();
+  try {
+    setSaving(true);
 
-console.log("SAVE USER ID:", userId);
+    // ==========================================
+    // UPDATE USER IN PRISMA
+    // ==========================================
 
-if (!userId || userId === "undefined" || userId === "null") {
-  await Swal.fire({
-    icon: "error",
-    title: "Invalid User ID",
-    text: "Please login again.",
-  });
+    const response = await fetch(
+      `/api/user/${encodeURIComponent(userId)}`,
+      {
+        method: "PATCH",
 
-  localStorage.removeItem("user");
+        headers: {
+          "Content-Type": "application/json",
+        },
 
-  router.replace("/login");
-
-
-      return;
-    }
-
-    try {
-      setSaving(true);
-
-      // --------------------------------------
-      // PATCH USER
-      // --------------------------------------
-
-      const response = await fetch(
-        `/api/user/${userId}`,
-        {
-          method: "GET",
-
-          headers: {
-            "Content-Type": "application/json",
-          },
-
-          body: JSON.stringify({
-            firstName:
-              form.firstName.trim(),
-
-            lastName:
-              form.lastName.trim(),
-
-            email:
-              form.email.trim().toLowerCase(),
-
-            phone:
-              form.phone.trim(),
-
-            address:
-              form.address.trim(),
-
-            city:
-              form.city.trim(),
-
-            state:
-              form.state.trim(),
-
-            pincode:
-              form.pincode.trim(),
-
-            image:
-              form.image || null,
-          }),
-        }
-      );
-
-      const data =
-        await response.json();
-
-      console.log(
-        "UPDATE USER RESPONSE:",
-        data
-      );
-
-      // --------------------------------------
-      // UPDATE ERROR
-      // --------------------------------------
-
-      if (
-        !response.ok ||
-        !data.success
-      ) {
-        throw new Error(
-          data.message ||
-            "Unable to update profile"
-        );
+        body: JSON.stringify({
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim().toLowerCase(),
+          phone: form.phone.trim(),
+          address: form.address.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          pincode: form.pincode.trim(),
+          image: form.image || null,
+        }),
       }
+    );
 
-      // --------------------------------------
-      // UPDATED USER
-      // --------------------------------------
+    const data = await response.json();
 
-      const updatedDbUser =
-        data.user || {
-          ...user,
-          ...form,
-        };
+    console.log("UPDATE USER RESPONSE:", data);
 
-      setUser(updatedDbUser);
-
-      setForm({
-        firstName:
-          updatedDbUser.firstName || "",
-
-        lastName:
-          updatedDbUser.lastName || "",
-
-        email:
-          updatedDbUser.email || "",
-
-        phone:
-          updatedDbUser.phone || "",
-
-        address:
-          updatedDbUser.address || "",
-
-        city:
-          updatedDbUser.city || "",
-
-        state:
-          updatedDbUser.state || "",
-
-        pincode:
-          updatedDbUser.pincode || "",
-
-        image:
-          updatedDbUser.image || "",
-      });
-
-      // --------------------------------------
-      // UPDATE LOCAL STORAGE
-      // --------------------------------------
-
-      const newLocalUser = {
-        ...loggedInUser,
-
-        ...updatedDbUser,
-
-        id: userId,
-
-        firstName:
-          updatedDbUser.firstName || "",
-
-        lastName:
-          updatedDbUser.lastName || "",
-
-        email:
-          updatedDbUser.email || "",
-
-        name:
-          `${updatedDbUser.firstName || ""} ${
-            updatedDbUser.lastName || ""
-          }`.trim(),
-
-        role:
-          updatedDbUser.role ||
-          loggedInUser.role ||
-          "Donor",
-
-        image:
-          updatedDbUser.image || "",
-      };
-
-      localStorage.setItem(
-        "user",
-        JSON.stringify(newLocalUser)
+    if (!response.ok || !data.success) {
+      throw new Error(
+        data.message || "Unable to update profile"
       );
-
-      // --------------------------------------
-      // UPDATE NAVBAR
-      // --------------------------------------
-
-      window.dispatchEvent(
-        new Event("userChanged")
-      );
-
-      // --------------------------------------
-      // SUCCESS
-      // --------------------------------------
-
-      await Swal.fire({
-        icon: "success",
-        title: "Profile Updated",
-        text: "Your profile has been updated successfully.",
-        timer: 1800,
-        showConfirmButton: false,
-      });
-    } catch (error) {
-      console.error(
-        "SAVE PROFILE ERROR:",
-        error
-      );
-
-      await Swal.fire({
-        icon: "error",
-        title: "Update Failed",
-        text:
-          error.message ||
-          "Unable to update profile.",
-      });
-    } finally {
-      setSaving(false);
     }
-  };
+
+    // ==========================================
+    // USER RETURNED FROM PRISMA
+    // ==========================================
+
+    const updatedDbUser = data.user;
+
+    setUser(updatedDbUser);
+
+    setForm({
+      firstName: updatedDbUser.firstName || "",
+      lastName: updatedDbUser.lastName || "",
+      email: updatedDbUser.email || "",
+      phone: updatedDbUser.phone || "",
+      address: updatedDbUser.address || "",
+      city: updatedDbUser.city || "",
+      state: updatedDbUser.state || "",
+      pincode: updatedDbUser.pincode || "",
+      image: updatedDbUser.image || "",
+    });
+
+    // ==========================================
+    // UPDATE LOCAL STORAGE
+    // ==========================================
+
+    const newLocalUser = {
+      ...loggedInUser,
+      ...updatedDbUser,
+
+      id: String(updatedDbUser.id || userId),
+
+      firstName: updatedDbUser.firstName || "",
+      lastName: updatedDbUser.lastName || "",
+      email: updatedDbUser.email || "",
+
+      name: `${updatedDbUser.firstName || ""} ${
+        updatedDbUser.lastName || ""
+      }`.trim(),
+
+      role:
+        updatedDbUser.role ||
+        loggedInUser.role ||
+        "Donor",
+
+      image:
+        updatedDbUser.image ||
+        "",
+    };
+
+    localStorage.setItem(
+      "user",
+      JSON.stringify(newLocalUser)
+    );
+
+    // Tell Navbar/dashboard that user changed
+    window.dispatchEvent(
+      new Event("userChanged")
+    );
+
+    // ==========================================
+    // SUCCESS
+    // ==========================================
+
+    await Swal.fire({
+      icon: "success",
+      title: "Profile Updated",
+      text: "Your changes have been saved to the database.",
+      timer: 1800,
+      showConfirmButton: false,
+    });
+
+  } catch (error) {
+    console.error("SAVE PROFILE ERROR:", error);
+
+    await Swal.fire({
+      icon: "error",
+      title: "Update Failed",
+      text:
+        error.message ||
+        "Unable to update profile.",
+    });
+  } finally {
+    setSaving(false);
+  }
+};
 
   // ==========================================
   // GET INITIALS
