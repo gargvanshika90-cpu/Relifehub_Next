@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
+import RequestDonationButton from "@/components/RequestDonationButton";
 
 import {
   ArrowLeft,
@@ -31,6 +32,15 @@ const products = [
     category: "Female",
     price: 129,
     image: "/clothes/jacket.png",
+
+    // IMPORTANT
+    donorId: "DONOR_USER_ID",
+    donorEmail: "donor@gmail.com",
+    donorName: "Preeti",
+    donorPhone: "+91 98765 43210",
+
+    address: "Sector 15, Noida, Uttar Pradesh - 201301",
+
     quantity: "1 Item",
     brand: "Levi's",
     originalPrice: "₹999",
@@ -39,14 +49,13 @@ const products = [
     color: "Blue",
     material: "Denim",
     postedOn: "5 Aug 2026",
+
     description:
-      "Good quality denim jacket in very good condition. Clean, comfortable and suitable for everyday wear.",
-    address: "Sector 15, Noida, Uttar Pradesh - 201301",
+      "Good quality denim jacket in very good condition.",
+
     preferredDate: "12 Aug 2026",
     preferredTime: "10:30 AM - 01:00 PM",
-    donorName: "Preeti",
     donorSince: "June 2024",
-    donorPhone: "+91 98765 43210",
   },
 
   {
@@ -55,6 +64,14 @@ const products = [
     category: "Men",
     price: 200,
     image: "/clothes/hoodie.png",
+
+    donorId: "DONOR_USER_ID_2",
+    donorEmail: "rahul@gmail.com",
+    donorName: "Rahul Gupta",
+    donorPhone: "+91 98765 43210",
+
+    address: "Sector 15, Noida, Uttar Pradesh - 201301",
+
     quantity: "1 Item",
     brand: "H&M",
     originalPrice: "₹899",
@@ -63,38 +80,44 @@ const products = [
     color: "Light Blue",
     material: "Cotton Blend",
     postedOn: "5 Aug 2026",
+
     description:
-      "Soft and comfortable hoodie suitable for winter and casual everyday use. Clean and in excellent condition.",
-    address: "Sector 15, Noida, Uttar Pradesh - 201301",
+      "Soft and comfortable hoodie suitable for winter.",
+
     preferredDate: "12 Aug 2026",
     preferredTime: "10:30 AM - 01:00 PM",
-    donorName: "Rahul Gupta",
     donorSince: "June 2024",
-    donorPhone: "+91 98765 43210",
   },
 
-  {
+   {
     id: 3,
-    name: "Cotton T-Shirt",
+    name: "Cotton tshirt",
     category: "Men",
-    price: 199,
+    price: 200,
     image: "/clothes/tshirt.png",
+
+    donorId: "DONOR_USER_ID_3",
+    donorEmail: "rahul@gmail.com",
+    donorName: "isha Gupta",
+    donorPhone: "+91 98765 89880",
+
+    address: "Sector 5, Noida, Uttar Pradesh - 201301",
+
     quantity: "1 Item",
-    brand: "Puma",
-    originalPrice: "₹699",
-    condition: "Good",
-    size: "M",
-    color: "Yellow",
-    material: "100% Cotton",
+    brand: "H&M",
+    originalPrice: "₹899",
+    condition: "Excellent",
+    size: "L",
+    color: "Light Blue",
+    material: "Cotton Blend",
     postedOn: "5 Aug 2026",
+
     description:
-      "Comfortable cotton T-shirt in good condition. Freshly washed and ready to use.",
-    address: "Sector 15, Noida, Uttar Pradesh - 201301",
+      "Soft and comfortable hoodie suitable for summer.",
+
     preferredDate: "12 Aug 2026",
     preferredTime: "10:30 AM - 01:00 PM",
-    donorName: "Rahul Sharma",
     donorSince: "June 2024",
-    donorPhone: "+91 98765 43210",
   },
 ];
 
@@ -218,26 +241,87 @@ export default function ClothesDetailsPage() {
   // REQUEST DONATION
   // ==========================================
 
-  const handleRequestDonation = () => {
-    const savedUser = localStorage.getItem("user");
+const handleRequestDonation = () => {
+  // ==========================================
+  // LOGIN CHECK
+  // ==========================================
 
-    if (!savedUser) {
-      alert(
-        "Please Login or Signup before requesting this item."
-      );
+  const savedUser = localStorage.getItem("user");
 
-      router.push("/login");
-      return;
-    }
+  if (!savedUser) {
+    alert("Please Login or Signup first.");
+    router.push("/login");
+    return;
+  }
 
-    setShowRequest(true);
-  };
+  // ==========================================
+  // CHECK EXISTING REQUESTS
+  // ==========================================
+
+  const savedRequests = JSON.parse(
+    localStorage.getItem("donationRequests") || "[]"
+  );
+
+  // ==========================================
+  // CHECK IF THIS ITEM IS ALREADY APPROVED
+  // ==========================================
+
+  const approvedRequest = savedRequests.find(
+    (request) =>
+      String(request.productId) ===
+        String(product.id) &&
+      request.status === "Approved"
+  );
+
+  if (approvedRequest) {
+    alert(
+      "Sorry! This item has already been donated to another buyer."
+    );
+
+    return;
+  }
+
+  // ==========================================
+  // CHECK IF CURRENT USER ALREADY REQUESTED
+  // ==========================================
+
+  const user = JSON.parse(savedUser);
+
+  const currentUserAlreadyRequested =
+    savedRequests.find(
+      (request) =>
+        String(request.productId) ===
+          String(product.id) &&
+        String(request.requesterId) ===
+          String(user.id) &&
+        request.status !== "Rejected"
+    );
+
+  if (currentUserAlreadyRequested) {
+    alert(
+      "You have already requested this item."
+    );
+
+    return;
+  }
+
+  // ==========================================
+  // OPEN REQUEST POPUP
+  // ==========================================
+
+  setShowRequest(true);
+};
 
   // ==========================================
   // SEND REQUEST
   // ==========================================
 
-  const sendRequest = () => {
+// ==========================================
+// SEND REQUEST
+// ==========================================
+
+const sendRequest = async () => {
+  try {
     const savedUser = localStorage.getItem("user");
 
     if (!savedUser) {
@@ -246,12 +330,17 @@ export default function ClothesDetailsPage() {
       return;
     }
 
+    const user = JSON.parse(savedUser);
+
+    // ==========================================
+    // CHECK QUANTITY
+    // ==========================================
+
     if (!quantity || Number(quantity) <= 0) {
       alert("Please enter a valid quantity.");
       return;
     }
 
-    // Clothes are single donation items
     if (Number(quantity) > 1) {
       alert(
         "This clothing item is available only as one item."
@@ -259,53 +348,296 @@ export default function ClothesDetailsPage() {
       return;
     }
 
-    const user = JSON.parse(savedUser);
+    // ==========================================
+    // GET COMPLETE BUYER PROFILE
+    // ==========================================
+
+    let buyer = {
+      ...user,
+      phone: user.phone || "",
+      address: user.address || "",
+      city: user.city || "",
+      state: user.state || "",
+      pincode: user.pincode || "",
+      image: user.image || null,
+    };
+
+    // Fetch latest profile from database
+    if (user.id) {
+      try {
+        const profileResponse = await fetch(
+          `/api/users/${user.id}`
+        );
+
+        if (profileResponse.ok) {
+          const profileData =
+            await profileResponse.json();
+
+          // Supports both:
+          // { user: {...} }
+          // and
+          // {...}
+          const profile =
+            profileData.user || profileData;
+
+          buyer = {
+            ...buyer,
+            ...profile,
+          };
+        }
+      } catch (profileError) {
+        console.error(
+          "Could not load buyer profile:",
+          profileError
+        );
+      }
+    }
+
+    console.log("COMPLETE BUYER:", buyer);
+
+    // ==========================================
+    // BUYER NAME
+    // ==========================================
+
+    const requesterName =
+      [
+        buyer.firstName,
+        buyer.lastName,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
+      buyer.name ||
+      "Buyer";
+
+    // ==========================================
+    // DONOR DETAILS
+    // ==========================================
+
+    const donorName =
+      product.donorName ||
+      product.ownerName ||
+      "Donor";
+
+    const donorEmail =
+      product.donorEmail ||
+      product.ownerEmail ||
+      "";
+
+    const donorId =
+      product.donorId ||
+      product.ownerId ||
+      "";
+
+    // ==========================================
+    // CREATE REQUEST
+    // ==========================================
+
+    const now = new Date().toISOString();
 
     const newRequest = {
-      id: Date.now(),
+      id: Date.now().toString(),
+
+      // ========================================
+      // ITEM
+      // ========================================
 
       productId: product.id,
-      productName: product.name,
-      productImage: product.image,
+
+      productName:
+        product.name ||
+        product.itemName ||
+        "Clothes Item",
+
+      itemName:
+        product.name ||
+        product.itemName ||
+        "Clothes Item",
+
+      productImage:
+        product.image || "",
 
       category: "Clothes",
 
-      donorName: product.donorName,
-      donorPhone: product.donorPhone,
-
-      requesterId: user.id,
-
-      requesterName:
-        `${user.firstName || ""} ${
-          user.lastName || ""
-        }`.trim(),
-
-      requesterEmail: user.email,
-
       quantity: 1,
 
-      size: product.size,
-      color: product.color,
+      size: product.size || "",
 
-      message: message,
+      color: product.color || "",
+
+      condition:
+        product.condition || "",
+
+      description:
+        product.description || "",
+
+      // ========================================
+      // DONOR
+      // ========================================
+
+      donorId: donorId,
+
+      donorName: donorName,
+
+      donorEmail: donorEmail,
+
+      donorPhone:
+        product.donorPhone || "",
+
+      donorImage:
+        product.donorImage || null,
+
+      // ========================================
+      // BUYER
+      // ========================================
+
+      requesterId:
+        buyer.id || user.id || "",
+
+      requesterName:
+        requesterName,
+
+      requesterEmail:
+        buyer.email || user.email || "",
+
+      requesterImage:
+        buyer.image || null,
+
+      requesterPhone:
+        buyer.phone || "",
+
+      buyerPhone:
+        buyer.phone || "",
+
+      // ========================================
+      // BUYER ADDRESS
+      // ========================================
+
+      address:
+        buyer.address || "",
+
+      buyerAddress:
+        buyer.address || "",
+
+      city:
+        buyer.city || "",
+
+      state:
+        buyer.state || "",
+
+      pincode:
+        buyer.pincode || "",
+
+      // ========================================
+      // BUYER COMPLETE ADDRESS
+      // ========================================
+
+      fullAddress: [
+        buyer.address,
+        buyer.city,
+        buyer.state,
+        buyer.pincode,
+      ]
+        .filter(Boolean)
+        .join(", "),
+
+      // ========================================
+      // MESSAGE
+      // ========================================
+
+      message:
+        message.trim() ||
+        `Hello ${donorName}, I would like to request "${product.name}".`,
+
+      // ========================================
+      // STATUS
+      // ========================================
 
       status: "Pending",
 
-      createdAt: new Date().toISOString(),
+      createdAt: now,
+
+      updatedAt: now,
     };
+
+    console.log(
+      "NEW DONATION REQUEST:",
+      newRequest
+    );
+
+    // ==========================================
+    // GET OLD REQUESTS
+    // ==========================================
 
     const oldRequests =
       JSON.parse(
-        localStorage.getItem("donationRequests")
+        localStorage.getItem(
+          "donationRequests"
+        )
       ) || [];
+
+    // ==========================================
+    // CHECK DUPLICATE
+    // ==========================================
+
+    const alreadyRequested =
+      oldRequests.some(
+        (request) =>
+          String(request.productId) ===
+            String(newRequest.productId) &&
+          String(
+            request.requesterId ||
+              request.requesterEmail
+          ) ===
+            String(
+              newRequest.requesterId ||
+                newRequest.requesterEmail
+            ) &&
+          request.status !== "Rejected"
+      );
+
+    if (alreadyRequested) {
+      alert(
+        "You have already requested this item."
+      );
+
+      return;
+    }
+
+    // ==========================================
+    // SAVE REQUEST
+    // ==========================================
+
+    const updatedRequests = [
+      ...oldRequests,
+      newRequest,
+    ];
 
     localStorage.setItem(
       "donationRequests",
-      JSON.stringify([
-        ...oldRequests,
-        newRequest,
-      ])
+      JSON.stringify(updatedRequests)
     );
+
+    console.log(
+      "REQUEST SAVED:",
+      JSON.parse(
+        localStorage.getItem(
+          "donationRequests"
+        )
+      )
+    );
+
+    // ==========================================
+    // EVENT
+    // ==========================================
+
+    window.dispatchEvent(
+      new Event("requestsChanged")
+    );
+
+    // ==========================================
+    // RESET
+    // ==========================================
 
     setShowRequest(false);
     setQuantity("1");
@@ -315,8 +647,25 @@ export default function ClothesDetailsPage() {
       "Donation request sent successfully! ❤️"
     );
 
-    router.push("/dashboard/requests");
-  };
+    // ==========================================
+    // OPEN REQUEST PAGE
+    // ==========================================
+
+    router.push(
+      "/dashboard/requests"
+    );
+
+  } catch (error) {
+    console.error(
+      "SEND REQUEST ERROR:",
+      error
+    );
+
+    alert(
+      "Request could not be sent. Please try again."
+    );
+  }
+};
 
   return (
     <main className="min-h-screen bg-gray-50 py-10">

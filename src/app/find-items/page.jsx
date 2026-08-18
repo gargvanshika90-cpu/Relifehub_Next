@@ -81,10 +81,6 @@ export default function FindItemsPage() {
           Find Items
         </h1>
 
-        <p className="text-gray-500 mt-1">
-          Home / Find Items
-        </p>
-
         <div className="mt-8 grid grid-cols-1 lg:grid-cols-5 gap-4">
 
           <div className="lg:col-span-2 relative">
@@ -103,7 +99,7 @@ export default function FindItemsPage() {
           </div>
 
           <button className="bg-green-600 hover:bg-green-700 text-white rounded-xl font-semibold">
-            Search
+            Search 
           </button>
 
        <select

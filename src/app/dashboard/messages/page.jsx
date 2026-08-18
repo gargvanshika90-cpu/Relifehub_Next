@@ -59,251 +59,355 @@ export default function MessagesPage() {
   // LOAD ALL DATA
   // =====================================================
 
-  const loadMessages = () => {
-    try {
-      const user =
-        JSON.parse(
-          localStorage.getItem("user")
-        ) || null;
+const loadMessages = () => {
+  try {
+    const user =
+      JSON.parse(
+        localStorage.getItem("user")
+      ) || null;
 
-      const savedMessages =
-        JSON.parse(
-          localStorage.getItem("messages")
-        ) || [];
+    const savedMessages =
+      JSON.parse(
+        localStorage.getItem("messages")
+      ) || [];
 
-      const savedRequests =
-        JSON.parse(
-          localStorage.getItem("donationRequests")
-        ) || [];
+    const savedRequests =
+      JSON.parse(
+        localStorage.getItem(
+          "donationRequests"
+        )
+      ) || [];
 
-      if (!user) {
-        setCurrentUser(null);
-        return;
+    if (!user) {
+      setCurrentUser(null);
+      setConversations([]);
+      return;
+    }
+
+    setCurrentUser(user);
+
+    const currentId = String(
+      user.id || ""
+    );
+
+    const currentEmail =
+      String(
+        user.email || ""
+      ).toLowerCase();
+
+    const userMap = {};
+
+    // =====================================================
+    // MESSAGES
+    // =====================================================
+
+    savedMessages.forEach((message) => {
+
+      const senderId = String(
+        message.senderId || ""
+      );
+
+      const receiverId = String(
+        message.receiverId || ""
+      );
+
+      const senderEmail =
+        String(
+          message.senderEmail || ""
+        ).toLowerCase();
+
+      const receiverEmail =
+        String(
+          message.receiverEmail || ""
+        ).toLowerCase();
+
+      let otherUser = null;
+
+      // Current user sent message
+      if (
+        senderId === currentId ||
+        (
+          senderEmail &&
+          senderEmail === currentEmail
+        )
+      ) {
+
+        otherUser = {
+          id:
+            message.receiverId ||
+            message.receiverEmail,
+
+          email:
+            message.receiverEmail || "",
+
+          name:
+            message.receiverName ||
+            "User",
+
+          image:
+            message.receiverImage ||
+            null,
+        };
       }
 
-      setCurrentUser(user);
+      // Current user received message
+      else if (
+        receiverId === currentId ||
+        (
+          receiverEmail &&
+          receiverEmail === currentEmail
+        )
+      ) {
 
-      // =================================================
-      // CREATE USER LIST FROM MESSAGES
-      // =================================================
+        otherUser = {
+          id:
+            message.senderId ||
+            message.senderEmail,
 
-      const userMap = {};
+          email:
+            message.senderEmail || "",
 
-      savedMessages.forEach((message) => {
-        const currentId = String(
-          user.id || user.email
-        );
+          name:
+            message.senderName ||
+            "User",
 
-        const senderId = String(
-          message.senderId ||
-            message.senderEmail
-        );
+          image:
+            message.senderImage ||
+            null,
+        };
+      }
 
-        const receiverId = String(
-          message.receiverId ||
-            message.receiverEmail
-        );
+      if (!otherUser) return;
 
-        let otherUser = null;
+      const key = String(
+        otherUser.id ||
+        otherUser.email
+      );
 
-        if (senderId === currentId) {
-          otherUser = {
-            id:
-              message.receiverId ||
-              message.receiverEmail,
+      if (!userMap[key]) {
 
-            email:
-              message.receiverEmail,
+        userMap[key] = {
+          ...otherUser,
+          lastMessage:
+            message.text || "",
+          lastTime:
+            message.createdAt ||
+            new Date().toISOString(),
+          unread: 0,
+        };
 
-            name:
-              message.receiverName ||
-              "User",
+      }
 
-            image:
-              message.receiverImage ||
-              null,
-          };
-        }
-
-        if (receiverId === currentId) {
-          otherUser = {
-            id:
-              message.senderId ||
-              message.senderEmail,
-
-            email:
-              message.senderEmail,
-
-            name:
-              message.senderName ||
-              "User",
-
-            image:
-              message.senderImage ||
-              null,
-          };
-        }
-
-        if (!otherUser) return;
-
-        const key = String(
-          otherUser.id ||
-            otherUser.email
-        );
-
-        if (!userMap[key]) {
-          userMap[key] = {
-            ...otherUser,
-            lastMessage:
-              message.text || "",
-            lastTime:
-              message.createdAt ||
-              new Date().toISOString(),
-            unread: 0,
-          };
-        }
-
-        // Latest message
-        const existingTime = new Date(
+      const existingTime =
+        new Date(
           userMap[key].lastTime
         ).getTime();
 
-        const currentTime = new Date(
+      const messageTime =
+        new Date(
           message.createdAt
         ).getTime();
 
-        if (currentTime >= existingTime) {
+      if (
+        messageTime >= existingTime
+      ) {
+
+        userMap[key].lastMessage =
+          message.text || "";
+
+        userMap[key].lastTime =
+          message.createdAt;
+      }
+
+      // Unread
+      const receivedByCurrentUser =
+        receiverId === currentId ||
+        (
+          receiverEmail &&
+          receiverEmail === currentEmail
+        );
+
+      if (
+        receivedByCurrentUser &&
+        message.read !== true
+      ) {
+        userMap[key].unread++;
+      }
+
+    });
+
+    // =====================================================
+    // REQUESTS
+    // =====================================================
+
+    savedRequests.forEach((request) => {
+
+      const donorId = String(
+        request.donorId || ""
+      );
+
+      const requesterId = String(
+        request.requesterId || ""
+      );
+
+      const donorEmail =
+        String(
+          request.donorEmail || ""
+        ).toLowerCase();
+
+      const requesterEmail =
+        String(
+          request.requesterEmail || ""
+        ).toLowerCase();
+
+      let otherUser = null;
+
+      // ==========================================
+      // CURRENT USER = DONOR
+      // ==========================================
+
+      if (
+        donorId === currentId ||
+        (
+          donorEmail &&
+          donorEmail === currentEmail
+        )
+      ) {
+
+        otherUser = {
+          id:
+            request.requesterId ||
+            request.requesterEmail,
+
+          email:
+            request.requesterEmail || "",
+
+          name:
+            request.requesterName ||
+            "Buyer",
+
+          image:
+            request.requesterImage ||
+            null,
+        };
+
+      }
+
+      // ==========================================
+      // CURRENT USER = BUYER
+      // ==========================================
+
+      else if (
+        requesterId === currentId ||
+        (
+          requesterEmail &&
+          requesterEmail === currentEmail
+        )
+      ) {
+
+        otherUser = {
+          id:
+            request.donorId ||
+            request.donorEmail,
+
+          email:
+            request.donorEmail || "",
+
+          name:
+            request.donorName ||
+            "Donor",
+
+          image:
+            request.donorImage ||
+            null,
+        };
+      }
+
+      if (!otherUser) return;
+
+      const key = String(
+        otherUser.id ||
+        otherUser.email
+      );
+
+      const requestMessage =
+        request.status === "Approved"
+          ? `Your request for "${request.productName}" was approved.`
+          : request.status === "Rejected"
+          ? `Your request for "${request.productName}" was rejected.`
+          : `Request for "${request.productName}"`;
+
+      const requestTime =
+        request.updatedAt ||
+        request.createdAt ||
+        new Date().toISOString();
+
+      if (!userMap[key]) {
+
+        userMap[key] = {
+          ...otherUser,
+          lastMessage:
+            requestMessage,
+          lastTime:
+            requestTime,
+          unread: 0,
+        };
+
+      } else {
+
+        const existingTime =
+          new Date(
+            userMap[key].lastTime
+          ).getTime();
+
+        const requestDate =
+          new Date(
+            requestTime
+          ).getTime();
+
+        if (
+          requestDate >= existingTime
+        ) {
+
           userMap[key].lastMessage =
-            message.text || "";
+            requestMessage;
 
           userMap[key].lastTime =
-            message.createdAt ||
-            new Date().toISOString();
+            requestTime;
         }
+      }
 
-        // Unread
-        if (
-          receiverId === currentId &&
-          message.read !== true
-        ) {
-          userMap[key].unread++;
-        }
-      });
+    });
 
-      // =================================================
-      // ALSO CREATE USERS FROM DONATION REQUESTS
-      // =================================================
-
-      savedRequests.forEach((request) => {
-        const currentId = String(
-          user.id || user.email
-        );
-
-        const donorId = String(
-          request.donorId ||
-            request.donorEmail ||
-            ""
-        );
-
-        const requesterId = String(
-          request.requesterId ||
-            request.requesterEmail ||
-            ""
-        );
-
-        let otherUser = null;
-
-        // Current user is donor
-        if (donorId === currentId) {
-          otherUser = {
-            id:
-              request.requesterId ||
-              request.requesterEmail,
-
-            email:
-              request.requesterEmail,
-
-            name:
-              request.requesterName ||
-              request.buyerName ||
-              "Buyer",
-
-            image:
-              request.requesterImage ||
-              null,
-          };
-        }
-
-        // Current user is buyer
-        if (requesterId === currentId) {
-          otherUser = {
-            id:
-              request.donorId ||
-              request.donorEmail,
-
-            email:
-              request.donorEmail,
-
-            name:
-              request.donorName ||
-              "Donor",
-
-            image:
-              request.donorImage ||
-              null,
-          };
-        }
-
-        if (!otherUser) return;
-
-        const key = String(
-          otherUser.id ||
-            otherUser.email
-        );
-
-        if (!userMap[key]) {
-          userMap[key] = {
-            ...otherUser,
-
-            lastMessage:
-              request.status === "Approved"
-                ? "Your donation request was approved."
-                : "Donation request",
-
-            lastTime:
-              request.updatedAt ||
-              request.createdAt ||
-              new Date().toISOString(),
-
-            unread: 0,
-          };
-        }
-      });
-
-      const finalUsers = Object.values(
-        userMap
-      ).sort(
+    const finalUsers =
+      Object.values(userMap).sort(
         (a, b) =>
           new Date(b.lastTime) -
           new Date(a.lastTime)
       );
 
-      setConversations(finalUsers);
+    setConversations(
+      finalUsers
+    );
 
-      // Select first conversation
-      if (
-        !selectedUser &&
-        finalUsers.length > 0
-      ) {
-        setSelectedUser(finalUsers[0]);
-      }
-    } catch (error) {
-      console.error(
-        "Error loading messages:",
-        error
+    if (
+      !selectedUser &&
+      finalUsers.length > 0
+    ) {
+      setSelectedUser(
+        finalUsers[0]
       );
     }
-  };
+
+  } catch (error) {
+
+    console.error(
+      "Error loading messages:",
+      error
+    );
+
+  }
+};
 
   // =====================================================
   // LOAD SELECTED CONVERSATION
@@ -414,109 +518,98 @@ export default function MessagesPage() {
   // =====================================================
   // SEND MESSAGE
   // =====================================================
+const sendMessage = () => {
 
-  const sendMessage = () => {
-    if (
-      !messageText.trim() ||
-      !currentUser ||
-      !selectedUser
-    ) {
-      return;
-    }
+  if (
+    !messageText.trim() ||
+    !currentUser ||
+    !selectedUser
+  ) {
+    return;
+  }
 
-    const savedMessages =
-      JSON.parse(
-        localStorage.getItem("messages")
-      ) || [];
+  const savedMessages =
+    JSON.parse(
+      localStorage.getItem("messages")
+    ) || [];
 
-    const senderId =
-      currentUser.id ||
-      currentUser.email;
+  const senderId =
+    currentUser.id ||
+    currentUser.email;
 
-    const receiverId =
-      selectedUser.id ||
-      selectedUser.email;
+  const receiverId =
+    selectedUser.id ||
+    selectedUser.email;
 
-    const senderName = `${currentUser.firstName || currentUser.name || ""} ${
-      currentUser.lastName || ""
-    }`.trim();
+  const senderName = [
+    currentUser.firstName,
+    currentUser.lastName,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
 
-    const newMessage = {
-      id: Date.now(),
+  const newMessage = {
 
-      senderId: senderId,
-      senderEmail:
-        currentUser.email,
+    id:
+      Date.now().toString(),
 
-      senderName:
-        senderName || "User",
+    senderId:
+      String(senderId),
 
-      senderImage:
-        currentUser.image || null,
+    senderEmail:
+      currentUser.email || "",
 
-      receiverId: receiverId,
-      receiverEmail:
-        selectedUser.email,
+    senderName:
+      senderName || "User",
 
-      receiverName:
-        selectedUser.name,
+    senderImage:
+      currentUser.image || null,
 
-      receiverImage:
-        selectedUser.image || null,
+    receiverId:
+      String(receiverId),
 
-      text: messageText.trim(),
+    receiverEmail:
+      selectedUser.email || "",
 
-      createdAt:
-        new Date().toISOString(),
+    receiverName:
+      selectedUser.name || "User",
 
-      read: false,
-    };
+    receiverImage:
+      selectedUser.image || null,
 
-    const updatedMessages = [
-      ...savedMessages,
-      newMessage,
-    ];
+    text:
+      messageText.trim(),
 
-    localStorage.setItem(
-      "messages",
-      JSON.stringify(updatedMessages)
-    );
+    createdAt:
+      new Date().toISOString(),
 
-    setMessages((prev) => [
-      ...prev,
-      newMessage,
-    ]);
-
-    setMessageText("");
-
-    // Update conversation preview
-    setConversations((prev) =>
-      prev.map((conversation) => {
-        const id = String(
-          conversation.id ||
-            conversation.email
-        );
-
-        if (
-          id === String(receiverId)
-        ) {
-          return {
-            ...conversation,
-            lastMessage:
-              newMessage.text,
-            lastTime:
-              newMessage.createdAt,
-          };
-        }
-
-        return conversation;
-      })
-    );
-
-    window.dispatchEvent(
-      new Event("messagesChanged")
-    );
+    read: false,
   };
+
+  const updatedMessages = [
+    ...savedMessages,
+    newMessage,
+  ];
+
+  localStorage.setItem(
+    "messages",
+    JSON.stringify(
+      updatedMessages
+    )
+  );
+
+  setMessages((prev) => [
+    ...prev,
+    newMessage,
+  ]);
+
+  setMessageText("");
+
+  window.dispatchEvent(
+    new Event("messagesChanged")
+  );
+};
 
   // =====================================================
   // ENTER TO SEND
