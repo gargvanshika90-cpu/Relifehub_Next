@@ -275,23 +275,23 @@ export default function ToysPage() {
         {/* ================= TOY CARDS ================= */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-8">
 
-          {sortedToys.map((toy) => (
+          {sortedToys.map((item) => (
 
             <div
-              key={toy.id}
+              key={item.id}
               className="group relative overflow-hidden rounded-xl border border-gray-200 bg-white p-3 shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
             >
 
               {/* FAVORITE */}
               <button
-                onClick={() => toggleFavorite(toy.id)}
+                onClick={() => toggleFavorite(item.id)}
                 className="absolute right-3 top-3 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm transition hover:bg-pink-50"
               >
 
                 <Heart
                   size={18}
                   className={
-                    favorites.includes(toy.id)
+                    favorites.includes(item.id)
                       ? "fill-red-500 text-red-500"
                       : "text-gray-400"
                   }
@@ -303,8 +303,8 @@ export default function ToysPage() {
               <div className="flex h-44 items-center justify-center overflow-hidden rounded-lg bg-white">
 
                 <img
-                  src={toy.image}
-                  alt={toy.name}
+                  src={item.image}
+                  alt={item.name}
                   className="h-full w-full object-contain p-3 transition duration-300 group-hover:scale-105"
                 />
 
@@ -314,19 +314,19 @@ export default function ToysPage() {
               <div className="mt-3">
 
                 <span className="inline-flex rounded-md bg-pink-50 px-2 py-1 text-[11px] font-semibold text-pink-600">
-                  {toy.category}
+                  {item.category}
                 </span>
 
               </div>
 
               {/* NAME */}
               <h3 className="mt-2 min-h-[24px] text-sm font-bold text-gray-900">
-                {toy.name}
+                {item.name}
               </h3>
 
               {/* CONDITION */}
               <p className="mt-1 text-xs text-gray-500">
-                {toy.condition}
+                {item.condition}
               </p>
 
               {/* PRICE */}
@@ -338,7 +338,7 @@ export default function ToysPage() {
                 />
 
                 <span className="text-lg font-bold text-green-700">
-                  {toy.price}
+                  {item.price}
                 </span>
 
               </div>
@@ -357,16 +357,13 @@ export default function ToysPage() {
 
                 </button>
 
-                <button
-                  onClick={() => buyNow(toy)}
-                  className="flex items-center justify-center gap-1 rounded-md bg-green-700 px-2 py-2 text-[11px] font-semibold text-white transition hover:bg-green-800"
-                >
-
-                  <Zap size={13} />
-
-                  Buy Now
-
-                </button>
+                
+    <Link
+                    href={`/categories/toys/details?id=${item.id}`}
+                    className="flex items-center justify-center gap-2 bg-indigo-600 text-white py-3 rounded-xl text-sm font-semibold hover:bg-indigo-700 duration-300"
+                  >
+                    Buy Now
+                  </Link>
 
               </div>
 

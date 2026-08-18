@@ -26,7 +26,7 @@ export default function StationeryPage() {
       id: 1,
       name: "Notebook",
       category: "Notebooks",
-      price: 5,
+      price: 0,
       image: "/stationery/notebook.png",
     },
 
@@ -34,7 +34,7 @@ export default function StationeryPage() {
       id: 2,
       name: "School Bag",
       category: "Bags",
-      price: 10,
+      price: 0,
       image: "/stationery/bag.png",
     },
 

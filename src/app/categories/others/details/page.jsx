@@ -27,18 +27,18 @@ import {
 const products = [
   {
     id: 1,
-    name: "Comfortable Sofa",
-    category: "Living Room",
-    price: 2000,
-    image: "/furniture/sofa.png",
-    quantity: "1 piece",
-    brand: "Home Comfort",
-    originalPrice: "₹5000",
+    name: "Household Items",
+    category: "Home Essentials",
+    price: 0,
+    image: "/others/household.png",
+    quantity: "5 pieces",
+    brand: "Home Essentials",
+    originalPrice: "₹800",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Comfortable and well-maintained sofa. Clean and suitable for a family home.",
+      "Useful household items in good condition. Clean, well-maintained and suitable for everyday home use.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -50,18 +50,18 @@ const products = [
 
   {
     id: 2,
-    name: "Wooden Chair",
-    category: "Chairs",
-    price: 400,
-    image: "/furniture/chair.png",
-    quantity: "2 pieces",
-    brand: "WoodCraft",
-    originalPrice: "₹1200",
+    name: "Electronic Items",
+    category: "Electronics",
+    price: 0,
+    image: "/others/electronics.png",
+    quantity: "3 pieces",
+    brand: "Samsung",
+    originalPrice: "₹2500",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Strong wooden chairs in good condition. Clean, durable and ready to use.",
+      "Useful electronic items in good working condition. Tested and suitable for regular household use.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -73,18 +73,18 @@ const products = [
 
   {
     id: 3,
-    name: "Wooden Table",
-    category: "Tables",
-    price: 600,
-    image: "/furniture/table.png",
-    quantity: "1 piece",
-    brand: "WoodCraft",
-    originalPrice: "₹1800",
+    name: "Accessories",
+    category: "Daily Use",
+    price: 0,
+    image: "/others/accessories.png",
+    quantity: "6 pieces",
+    brand: "Daily Essentials",
+    originalPrice: "₹600",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Sturdy wooden table in good condition. Suitable for dining, study or general household use.",
+      "Useful daily-use accessories in good condition. Clean, reusable and suitable for everyday needs.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -94,7 +94,6 @@ const products = [
     donorPhone: "+91 98765 43210",
   },
 ];
-
 
 export default function ClothesDetailsPage() {
   const searchParams = useSearchParams();
@@ -120,14 +119,14 @@ export default function ClothesDetailsPage() {
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
         <div className="bg-white rounded-3xl shadow-md border p-10 text-center">
           <h1 className="text-2xl font-bold">
-          furinature Item Not Found
+            others Item Not Found
           </h1>
 
           <Link
-            href="/categories/furniture"
+            href="/categories/others"
             className="inline-block mt-5 bg-green-700 text-white px-6 py-3 rounded-xl"
           >
-            Back to furinture
+            Back to others
           </Link>
         </div>
       </main>
@@ -173,7 +172,6 @@ export default function ClothesDetailsPage() {
       // Donation item
       quantity: 1,
 
-      size: product.size,
       color: product.color,
       condition: product.condition,
 
@@ -326,11 +324,11 @@ export default function ClothesDetailsPage() {
         ========================================= */}
 
         <Link
-          href="/categories/clothes"
+          href="/categories/others"
           className="inline-flex items-center gap-2 text-green-700 font-semibold mb-6 hover:text-green-800"
         >
           <ArrowLeft size={20} />
-          Back to Clothes
+          Back to others
         </Link>
 
         {/* =========================================
@@ -429,23 +427,11 @@ export default function ClothesDetailsPage() {
                 value={product.brand}
               />
 
-              <Info
-                icon={<Tag size={18} />}
-                title="Size"
-                value={product.size}
-              />
+            
 
-              <Info
-                icon={<Tag size={18} />}
-                title="Color"
-                value={product.color}
-              />
+            
 
-              <Info
-                icon={<Tag size={18} />}
-                title="Material"
-                value={product.material}
-              />
+              
 
               <Info
                 icon={<Tag size={18} />}

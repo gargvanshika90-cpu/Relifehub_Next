@@ -27,18 +27,18 @@ import {
 const products = [
   {
     id: 1,
-    name: "Comfortable Sofa",
-    category: "Living Room",
-    price: 2000,
-    image: "/furniture/sofa.png",
-    quantity: "1 piece",
-    brand: "Home Comfort",
-    originalPrice: "₹5000",
+    name: "Notebook",
+    category: "Notebooks",
+    price: 5,
+    image: "/stationery/notebook.png",
+    quantity: "5 pieces",
+    brand: "Classmate",
+    originalPrice: "₹50",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Comfortable and well-maintained sofa. Clean and suitable for a family home.",
+      "Good quality notebooks with clean pages. Suitable for school, college, office and everyday writing.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -50,18 +50,18 @@ const products = [
 
   {
     id: 2,
-    name: "Wooden Chair",
-    category: "Chairs",
-    price: 400,
-    image: "/furniture/chair.png",
-    quantity: "2 pieces",
-    brand: "WoodCraft",
+    name: "School Bag",
+    category: "Bags",
+    price: 10,
+    image: "/stationery/bag.png",
+    quantity: "1 piece",
+    brand: "American Tourister",
     originalPrice: "₹1200",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Strong wooden chairs in good condition. Clean, durable and ready to use.",
+      "Strong and spacious school bag in good condition. Suitable for students and daily school use.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -73,18 +73,18 @@ const products = [
 
   {
     id: 3,
-    name: "Wooden Table",
-    category: "Tables",
-    price: 600,
-    image: "/furniture/table.png",
-    quantity: "1 piece",
-    brand: "WoodCraft",
-    originalPrice: "₹1800",
+    name: "Pen & Pencil Set",
+    category: "Writing",
+    price: 0,
+    image: "/stationery/pens.png",
+    quantity: "10 pieces",
+    brand: "Classmate",
+    originalPrice: "₹100",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Sturdy wooden table in good condition. Suitable for dining, study or general household use.",
+      "Set of useful pens and pencils in good condition. Perfect for school, college and everyday writing.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -94,7 +94,6 @@ const products = [
     donorPhone: "+91 98765 43210",
   },
 ];
-
 
 export default function ClothesDetailsPage() {
   const searchParams = useSearchParams();
@@ -120,14 +119,14 @@ export default function ClothesDetailsPage() {
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
         <div className="bg-white rounded-3xl shadow-md border p-10 text-center">
           <h1 className="text-2xl font-bold">
-          furinature Item Not Found
+            Clothing Item Not Found
           </h1>
 
           <Link
-            href="/categories/furniture"
+            href="/categories/clothes"
             className="inline-block mt-5 bg-green-700 text-white px-6 py-3 rounded-xl"
           >
-            Back to furinture
+            Back to Clothes
           </Link>
         </div>
       </main>
@@ -326,11 +325,11 @@ export default function ClothesDetailsPage() {
         ========================================= */}
 
         <Link
-          href="/categories/clothes"
+          href="/categories/stationery"
           className="inline-flex items-center gap-2 text-green-700 font-semibold mb-6 hover:text-green-800"
         >
           <ArrowLeft size={20} />
-          Back to Clothes
+          Back to stationery
         </Link>
 
         {/* =========================================

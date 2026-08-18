@@ -193,15 +193,7 @@ export default function OthersPage() {
             Other Items
           </h2>
 
-          <select
-            className="border border-gray-300 rounded-lg px-4 py-2 bg-white outline-none focus:ring-2 focus:ring-orange-500"
-            defaultValue="Most Popular"
-          >
-            <option>Most Popular</option>
-            <option>Newest</option>
-            <option>Price Low to High</option>
-            <option>Price High to Low</option>
-          </select>
+          
         </div>
 
         {/* ==================================================
@@ -216,7 +208,7 @@ export default function OthersPage() {
             >
               {/* IMAGE */}
 
-              <div className="relative p-6 bg-[#fffaf5]">
+              <div className="relative p-6 bg-[#ffffff]">
                 {/* WISHLIST */}
 
                 <button
@@ -241,8 +233,8 @@ export default function OthersPage() {
                     src={item.image}
                     alt={item.name}
                     width={350}
-                    height={280}
-                    className="mx-auto h-56 w-full object-contain transition duration-300 group-hover:scale-105"
+                    height={380}
+                    className="mx-auto h-76 w-full object-contain transition duration-300 group-hover:scale-105"
                   />
                 </Link>
               </div>

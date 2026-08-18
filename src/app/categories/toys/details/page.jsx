@@ -27,18 +27,18 @@ import {
 const products = [
   {
     id: 1,
-    name: "Comfortable Sofa",
-    category: "Living Room",
-    price: 2000,
-    image: "/furniture/sofa.png",
+    name: "Teddy Bear",
+    category: "Soft Toys",
+    price: 299,
+    image: "/toys/teddy.png",
     quantity: "1 piece",
-    brand: "Home Comfort",
-    originalPrice: "₹5000",
-    condition: "Good",
+    brand: "Funskool",
+    originalPrice: "₹599",
+    condition: "Excellent",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Comfortable and well-maintained sofa. Clean and suitable for a family home.",
+      "A soft and cuddly teddy bear in excellent condition. Clean, safe and suitable for children.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -50,18 +50,18 @@ const products = [
 
   {
     id: 2,
-    name: "Wooden Chair",
-    category: "Chairs",
-    price: 400,
-    image: "/furniture/chair.png",
-    quantity: "2 pieces",
-    brand: "WoodCraft",
-    originalPrice: "₹1200",
+    name: "Building Blocks Set",
+    category: "Building Blocks",
+    price: 349,
+    image: "/toys/blocks.png",
+    quantity: "1 set",
+    brand: "LEGO",
+    originalPrice: "₹799",
     condition: "Good",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Strong wooden chairs in good condition. Clean, durable and ready to use.",
+      "Colorful building blocks that encourage creativity and learning. The set is in good condition and suitable for children.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -73,18 +73,18 @@ const products = [
 
   {
     id: 3,
-    name: "Wooden Table",
-    category: "Tables",
-    price: 600,
-    image: "/furniture/table.png",
+    name: "Remote Control Car",
+    category: "Remote Toys",
+    price: 499,
+    image: "/toys/car.png",
     quantity: "1 piece",
-    brand: "WoodCraft",
-    originalPrice: "₹1800",
-    condition: "Good",
+    brand: "Hot Wheels",
+    originalPrice: "₹999",
+    condition: "Like New",
     postedOn: "5 Aug 2026",
     expiryDate: "N/A",
     description:
-      "Sturdy wooden table in good condition. Suitable for dining, study or general household use.",
+      "Remote control toy car in like-new condition. Works properly and is suitable for children's indoor and outdoor play.",
     address:
       "Sector 15, Noida, Uttar Pradesh - 201301",
     preferredDate: "12 Aug 2026",
@@ -94,7 +94,6 @@ const products = [
     donorPhone: "+91 98765 43210",
   },
 ];
-
 
 export default function ClothesDetailsPage() {
   const searchParams = useSearchParams();
@@ -120,14 +119,14 @@ export default function ClothesDetailsPage() {
       <main className="min-h-screen bg-gray-50 flex items-center justify-center px-6">
         <div className="bg-white rounded-3xl shadow-md border p-10 text-center">
           <h1 className="text-2xl font-bold">
-          furinature Item Not Found
+            Clothing Item Not Found
           </h1>
 
           <Link
-            href="/categories/furniture"
+            href="/categories/toys"
             className="inline-block mt-5 bg-green-700 text-white px-6 py-3 rounded-xl"
           >
-            Back to furinture
+            Back to Clothes
           </Link>
         </div>
       </main>
@@ -326,11 +325,11 @@ export default function ClothesDetailsPage() {
         ========================================= */}
 
         <Link
-          href="/categories/clothes"
+          href="/categories/stationery"
           className="inline-flex items-center gap-2 text-green-700 font-semibold mb-6 hover:text-green-800"
         >
           <ArrowLeft size={20} />
-          Back to Clothes
+          Back to stationery
         </Link>
 
         {/* =========================================
