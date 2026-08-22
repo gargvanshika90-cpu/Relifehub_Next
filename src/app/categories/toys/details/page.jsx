@@ -29,7 +29,7 @@ const products = [
     id: 1,
     name: "Teddy Bear",
     category: "Soft Toys",
-    price: 299,
+    price: 50,
     image: "/toys/teddy.png",
     quantity: "1 piece",
     brand: "Funskool",
@@ -52,7 +52,7 @@ const products = [
     id: 2,
     name: "Building Blocks Set",
     category: "Building Blocks",
-    price: 349,
+    price: 60,
     image: "/toys/blocks.png",
     quantity: "1 set",
     brand: "LEGO",
@@ -75,7 +75,7 @@ const products = [
     id: 3,
     name: "Remote Control Car",
     category: "Remote Toys",
-    price: 499,
+    price: 100,
     image: "/toys/car.png",
     quantity: "1 piece",
     brand: "Hot Wheels",
@@ -95,7 +95,7 @@ const products = [
   },
 ];
 
-export default function ClothesDetailsPage() {
+export default function ToyDetailsPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -137,7 +137,12 @@ export default function ClothesDetailsPage() {
   // ADD TO CART
   // ==========================================
 
-  const handleAddToCart = () => {
+ const handleAddToCart = () => {
+  try {
+    // ==========================================
+    // CHECK LOGIN
+    // ==========================================
+
     const savedUser = localStorage.getItem("user");
 
     if (!savedUser) {
@@ -149,57 +154,108 @@ export default function ClothesDetailsPage() {
       return;
     }
 
-    const oldCart =
-      JSON.parse(localStorage.getItem("cartItems")) || [];
+    const user = JSON.parse(savedUser);
 
-    // Donation items can only have quantity 1
-    const alreadyExists = oldCart.some(
-      (item) => item.id === product.id
+    // ==========================================
+    // USER ID
+    // ==========================================
+
+    const userId =
+      user.id ||
+      user.email ||
+      "guest";
+
+    // ==========================================
+    // GET ALL CART DATA
+    // ==========================================
+
+    const allCartData =
+      JSON.parse(
+        localStorage.getItem("cartItems")
+      ) || {};
+
+    // ==========================================
+    // GET CURRENT USER CART
+    // ==========================================
+
+    const userCart =
+      allCartData[userId] || [];
+
+    // ==========================================
+    // CHECK ITEM ALREADY IN CART
+    // ==========================================
+
+    const alreadyExists = userCart.some(
+      (item) =>
+        String(item.productId) ===
+        String(product.id)
     );
 
     if (alreadyExists) {
-      alert("This item is already in your cart.");
+      alert(
+        "This item is already in your cart."
+      );
+
       setAddedToCart(true);
       return;
     }
 
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      category: product.category,
-      image: product.image,
+    // ==========================================
+    // CREATE CART ITEM
+    // ==========================================
 
-      // Donation item
-      quantity: 1,
+  const cartItem = {
+  id: product.id,
+  name: product.name,
+  category: product.category,
+  image: product.image,
 
-      size: product.size,
-      color: product.color,
-      condition: product.condition,
+  quantity: 1,
 
-      originalPrice: product.originalPrice,
-      price: 0,
+  size: product.size,
+  color: product.color,
+  condition: product.condition,
 
-      donorName: product.donorName,
-      donorPhone: product.donorPhone,
+  originalPrice: product.originalPrice,
 
-      address: product.address,
-      preferredDate: product.preferredDate,
-      preferredTime: product.preferredTime,
+  // ✅ ACTUAL PRODUCT PRICE
+  price: Number(product.price) || 0,
 
-      addedAt: new Date().toISOString(),
-    };
+  donorName: product.donorName,
+  donorPhone: product.donorPhone,
 
-    const updatedCart = [
-      ...oldCart,
+  address: product.address,
+  preferredDate: product.preferredDate,
+  preferredTime: product.preferredTime,
+
+  addedAt: new Date().toISOString(),
+};
+
+    // ==========================================
+    // ADD ITEM TO CURRENT USER CART
+    // ==========================================
+
+    const updatedUserCart = [
+      ...userCart,
       cartItem,
     ];
 
+    // ==========================================
+    // SAVE
+    // ==========================================
+
+    allCartData[userId] =
+      updatedUserCart;
+
     localStorage.setItem(
       "cartItems",
-      JSON.stringify(updatedCart)
+      JSON.stringify(allCartData)
     );
 
-    // Notify Navbar / Cart icon
+    // ==========================================
+    // NOTIFY CART
+    // ==========================================
+
     window.dispatchEvent(
       new Event("cartUpdated")
     );
@@ -209,7 +265,18 @@ export default function ClothesDetailsPage() {
     alert(
       `${product.name} added to your cart successfully! 🛒`
     );
-  };
+
+  } catch (error) {
+    console.error(
+      "ADD TO CART ERROR:",
+      error
+    );
+
+    alert(
+      "Unable to add item to cart. Please try again."
+    );
+  }
+};
 
   // ==========================================
   // REQUEST DONATION
@@ -325,11 +392,11 @@ export default function ClothesDetailsPage() {
         ========================================= */}
 
         <Link
-          href="/categories/stationery"
+          href="/categories/toys"
           className="inline-flex items-center gap-2 text-green-700 font-semibold mb-6 hover:text-green-800"
         >
           <ArrowLeft size={20} />
-          Back to stationery
+          Back to toys
         </Link>
 
         {/* =========================================
@@ -452,12 +519,16 @@ export default function ClothesDetailsPage() {
                 value={product.originalPrice}
               />
 
-              <Info
-                icon={<Gift size={18} />}
-                title="Donation Price"
-                value="FREE"
-                green
-              />
+          <Info 
+  icon={<Gift size={18} />} 
+  title="Donation Price" 
+  value={
+    product.price === 0
+      ? "FREE"
+      : `₹${product.price}`
+  } 
+  green 
+/>
 
               <Info
                 icon={<CalendarDays size={18} />}

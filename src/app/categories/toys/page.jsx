@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+ import Navbar from "../../../../components/navbar";
 
 import {
   Heart,
@@ -25,7 +26,7 @@ const toys = [
     name: "Teddy Bear",
     category: "Soft Toys",
     condition: "Excellent",
-    price: 299,
+    price: 50,
     image: "/toys/teddy.png",
   },
   {
@@ -33,7 +34,7 @@ const toys = [
     name: "Building Blocks Set",
     category: "Building Blocks",
     condition: "Good",
-    price: 349,
+    price: 60,
     image: "/toys/blocks.png",
   },
   {
@@ -41,7 +42,7 @@ const toys = [
     name: "Remote Control Car",
     category: "Remote Toys",
     condition: "Like New",
-    price: 499,
+    price: 100,
     image: "/toys/car.png",
   },
   
@@ -60,11 +61,93 @@ export default function ToysPage() {
     );
   };
 
-  const addToCart = (toy) => {
-    setCart((prev) => [...prev, toy]);
+const addToCart = (item) => {
+  try {
+    // Check login
+    const savedUser = localStorage.getItem("user");
 
-    alert(`${toy.name} added to cart!`);
-  };
+    if (!savedUser) {
+      alert("Please login before adding items to cart.");
+      router.push("/login");
+      return;
+    }
+
+    const user = JSON.parse(savedUser);
+
+    // Get old cart
+    const oldCart =
+      JSON.parse(localStorage.getItem("cartItems")) || [];
+
+    // Check whether same item is already in cart
+    const alreadyInCart = oldCart.some(
+      (cartItem) =>
+        String(cartItem.id) === String(item.id)
+    );
+
+    if (alreadyInCart) {
+      alert("This item is already in your cart.");
+      return;
+    }
+
+    // Create cart item
+    const cartItem = {
+      id: item.id,
+
+      name: item.name,
+
+      category: "Toys",
+
+      image: item.image,
+
+      price: 0,
+
+      quantity: 1,
+
+      condition: item.condition || "Good",
+
+      description: item.description || "",
+
+      donorName: item.donorName || "",
+
+      donorPhone: item.donorPhone || "",
+
+      donorEmail: item.donorEmail || "",
+
+      address: item.address || "",
+
+      userId: user.id || "",
+
+      addedAt: new Date().toISOString(),
+    };
+
+    // Add item
+    const updatedCart = [
+      ...oldCart,
+      cartItem,
+    ];
+
+    // Save cart
+    localStorage.setItem(
+      "cartItems",
+      JSON.stringify(updatedCart)
+    );
+
+    // Notify navbar/cart
+    window.dispatchEvent(
+      new Event("cartUpdated")
+    );
+
+    alert(
+      `${item.name} added to cart successfully! 🛒`
+    );
+  } catch (error) {
+    console.error("ADD TO CART ERROR:", error);
+
+    alert(
+      "Item could not be added to cart."
+    );
+  }
+};
 
   const buyNow = (toy) => {
     alert(`You selected ${toy.name} for purchase.`);
@@ -79,6 +162,7 @@ export default function ToysPage() {
   });
 
   return (
+    <> <Navbar></Navbar>
     <main className="min-h-screen bg-white text-slate-800">
 
       {/* ================= HERO SECTION ================= */}
@@ -338,7 +422,7 @@ export default function ToysPage() {
                 />
 
                 <span className="text-lg font-bold text-green-700">
-                  {item.price}
+                  ₹{item.price}
                 </span>
 
               </div>
@@ -347,15 +431,12 @@ export default function ToysPage() {
               <div className="mt-3 grid grid-cols-2 gap-2">
 
                 <button
-                  onClick={() => addToCart(toy)}
-                  className="flex items-center justify-center gap-1 rounded-md border border-green-700 px-2 py-2 text-[11px] font-semibold text-green-700 transition hover:bg-green-50"
-                >
-
-                  <ShoppingCart size={13} />
-
-                  Add to Cart
-
-                </button>
+  onClick={() => addToCart(item)}
+  className="flex items-center justify-center gap-2 w-full bg-green-700 hover:bg-green-800 text-white py-3 rounded-xl font-semibold"
+>
+  <ShoppingCart size={18} />
+  Add to Cart
+</button>
 
                 
     <Link
@@ -474,5 +555,6 @@ export default function ToysPage() {
       </section>
 
     </main>
+    </>
   );
 }

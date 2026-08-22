@@ -1,8 +1,9 @@
 "use client";
 
 import Sidebar from "@/components/dashboard/Sidebar";
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+
 import {
   Clock,
   CheckCircle,
@@ -20,597 +21,415 @@ import {
 } from "lucide-react";
 
 export default function RequestsPage() {
+  const router = useRouter();
+
   const [requests, setRequests] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [activeTab, setActiveTab] = useState("All");
-  const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
-  const [userRole, setUserRole] = useState("Donor");
-  const [actionLoading, setActionLoading] = useState(false);
+  const [role, setRole] = useState("Buyer");
 
-  // =====================================================
-  // LOAD CURRENT USER
-  // =====================================================
+  // =========================================================
+  // LOAD
+  // =========================================================
 
   useEffect(() => {
+    loadRequests();
+
+    const handleChange = () => {
+      loadRequests();
+    };
+
+    window.addEventListener("requestsChanged", handleChange);
+
+    return () => {
+      window.removeEventListener("requestsChanged", handleChange);
+    };
+  }, []);
+
+  // =========================================================
+  // LOAD REQUESTS
+  // =========================================================
+
+  const loadRequests = () => {
     try {
       const savedUser = localStorage.getItem("user");
 
       if (!savedUser) {
-        console.log("No logged-in user found");
-        setLoading(false);
+        setCurrentUser(null);
+        setRequests([]);
         return;
       }
 
       const user = JSON.parse(savedUser);
 
-      console.log("CURRENT USER:", user);
-
       setCurrentUser(user);
 
-      /*
-       * Your project may store role as:
-       * Donor / Buyer
-       * donor / buyer
-       */
+      // User role
+      const userRole =
+        user.role ||
+        user.userRole ||
+        "Buyer";
 
-      const role = String(user.role || "Donor").toLowerCase();
+      setRole(userRole);
 
-      if (role === "buyer") {
-        setUserRole("Buyer");
-      } else {
-        setUserRole("Donor");
+      const savedRequests =
+        JSON.parse(
+          localStorage.getItem("donationRequests")
+        ) || [];
+
+      // =====================================================
+      // CURRENT USER ID / EMAIL
+      // =====================================================
+
+      const currentId = String(user.id || "");
+
+      const currentEmail =
+        String(user.email || "")
+          .trim()
+          .toLowerCase();
+
+      // =====================================================
+      // DONOR VIEW
+      // =====================================================
+
+      if (
+        userRole.toLowerCase() === "donor"
+      ) {
+        const donorRequests =
+          savedRequests.filter((request) => {
+            const donorId = String(
+              request.donorId ||
+                request.ownerId ||
+                ""
+            );
+
+            const donorEmail =
+              String(
+                request.donorEmail ||
+                  request.ownerEmail ||
+                  ""
+              )
+                .trim()
+                .toLowerCase();
+
+            const matchId =
+              donorId &&
+              currentId &&
+              donorId === currentId;
+
+            const matchEmail =
+              donorEmail &&
+              currentEmail &&
+              donorEmail === currentEmail;
+
+            return matchId || matchEmail;
+          });
+
+        setRequests(donorRequests);
       }
 
-      loadRequests(user);
-    } catch (error) {
-      console.error("USER LOAD ERROR:", error);
-      setLoading(false);
-    }
-  }, []);
+      // =====================================================
+      // BUYER VIEW
+      // =====================================================
 
-  // =====================================================
-  // REQUESTS CHANGED EVENT
-  // =====================================================
+      else {
+        const buyerRequests =
+          savedRequests.filter((request) => {
+            const requesterId = String(
+              request.requesterId ||
+                request.buyerId ||
+                ""
+            );
 
-  useEffect(() => {
-    const handleRequestsChanged = () => {
-      const savedUser = localStorage.getItem("user");
+            const requesterEmail =
+              String(
+                request.requesterEmail ||
+                  request.buyerEmail ||
+                  ""
+              )
+                .trim()
+                .toLowerCase();
 
-      if (!savedUser) return;
+            const matchId =
+              requesterId &&
+              currentId &&
+              requesterId === currentId;
 
-      try {
-        const user = JSON.parse(savedUser);
-        loadRequests(user);
-      } catch (error) {
-        console.error("REQUEST EVENT ERROR:", error);
+            const matchEmail =
+              requesterEmail &&
+              currentEmail &&
+              requesterEmail === currentEmail;
+
+            return matchId || matchEmail;
+          });
+
+        setRequests(buyerRequests);
       }
-    };
-
-    window.addEventListener(
-      "requestsChanged",
-      handleRequestsChanged
-    );
-
-    return () => {
-      window.removeEventListener(
-        "requestsChanged",
-        handleRequestsChanged
-      );
-    };
-  }, []);
-
-  // =====================================================
-  // LOAD REQUESTS FROM PRISMA API
-  // =====================================================
-
-  const loadRequests = async (user = currentUser) => {
-    try {
-      if (!user?.id) {
-        setRequests([]);
-        setLoading(false);
-        return;
-      }
-
-      setLoading(true);
-
-      const role = String(
-        user.role || userRole || "Donor"
-      ).toLowerCase();
-
-      const type = role === "buyer" ? "buyer" : "donor";
-
-      console.log(
-        "LOADING REQUESTS:",
-        user.id,
-        type
-      );
-
-      const response = await fetch(
-        `/api/donation-requests?userId=${encodeURIComponent(
-          user.id
-        )}&type=${type}`,
-        {
-          method: "GET",
-          cache: "no-store",
-        }
-      );
-
-      const data = await response.json();
-
-      console.log("REQUEST API RESPONSE:", data);
-
-      if (!response.ok || !data.success) {
-        console.error(
-          "REQUEST API ERROR:",
-          data.message
-        );
-
-        setRequests([]);
-        return;
-      }
-
-      const apiRequests = Array.isArray(data.requests)
-        ? data.requests
-        : [];
-
-      setRequests(apiRequests);
-
-      /*
-       * If modal is open, update its request data too.
-       */
-      setSelectedRequest((previous) => {
-        if (!previous) return null;
-
-        const updated = apiRequests.find(
-          (item) =>
-            String(item.id) === String(previous.id)
-        );
-
-        return updated || null;
-      });
     } catch (error) {
       console.error(
-        "LOAD REQUESTS ERROR:",
+        "LOAD REQUEST ERROR:",
         error
       );
 
       setRequests([]);
-    } finally {
-      setLoading(false);
     }
   };
 
-  // =====================================================
-  // STATUS NORMALIZER
-  // =====================================================
+  // =========================================================
+  // STATUS UPDATE
+  // =========================================================
 
-  const normalizeStatus = (status) => {
-    const value = String(
-      status || "PENDING"
-    ).toUpperCase();
+  const updateRequestStatus = (
+    requestId,
+    newStatus
+  ) => {
+    try {
+      const savedRequests =
+        JSON.parse(
+          localStorage.getItem(
+            "donationRequests"
+          )
+        ) || [];
 
-    if (value === "APPROVED") return "Approved";
-    if (value === "REJECTED") return "Rejected";
-    if (value === "COMPLETED") return "Completed";
-    if (value === "CANCELLED") return "Cancelled";
+      const now =
+        new Date().toISOString();
 
-    return "Pending";
-  };
+      const updatedRequests =
+        savedRequests.map((request) => {
+          if (
+            String(request.id) ===
+            String(requestId)
+          ) {
+            return {
+              ...request,
 
-  // =====================================================
-  // GET BUYER NAME
-  // =====================================================
+              status: newStatus,
 
-  const getBuyerName = (request) => {
-    if (request?.requester) {
-      const firstName =
-        request.requester.firstName || "";
+              updatedAt: now,
 
-      const lastName =
-        request.requester.lastName || "";
+              // When donor approves
+              // item becomes unavailable
+              itemStatus:
+                newStatus === "Approved"
+                  ? "Claimed"
+                  : "Available",
+            };
+          }
 
-      const fullName =
-        `${firstName} ${lastName}`.trim();
+          return request;
+        });
 
-      if (fullName) return fullName;
-    }
+      localStorage.setItem(
+        "donationRequests",
+        JSON.stringify(updatedRequests)
+      );
 
-    return (
-      request?.requesterName ||
-      request?.buyerName ||
-      "Buyer"
-    );
-  };
+      // =====================================================
+      // IMPORTANT
+      // Notify all pages
+      // =====================================================
 
-  // =====================================================
-  // GET BUYER EMAIL
-  // =====================================================
+      window.dispatchEvent(
+        new Event("requestsChanged")
+      );
 
-  const getBuyerEmail = (request) => {
-    return (
-      request?.requester?.email ||
-      request?.requesterEmail ||
-      request?.buyerEmail ||
-      ""
-    );
-  };
+      // Reload
+      loadRequests();
 
-  // =====================================================
-  // GET BUYER ID
-  // =====================================================
+      // Update modal
+      setSelectedRequest((previous) => {
+        if (
+          !previous ||
+          String(previous.id) !==
+            String(requestId)
+        ) {
+          return previous;
+        }
 
-  const getBuyerId = (request) => {
-    return (
-      request?.requesterId ||
-      request?.requester?.id ||
-      request?.buyerId ||
-      getBuyerEmail(request)
-    );
-  };
-
-  // =====================================================
-  // GET BUYER PHONE
-  // =====================================================
-
-  const getBuyerPhone = (request) => {
-    return (
-      request?.requester?.phone ||
-      request?.requesterPhone ||
-      request?.buyerPhone ||
-      request?.phone ||
-      "Not provided"
-    );
-  };
-
-  // =====================================================
-  // GET BUYER ADDRESS
-  // =====================================================
-
-  const getBuyerAddress = (request) => {
-    const requester = request?.requester;
-
-    if (requester) {
-      const parts = [
-        requester.address,
-        requester.city,
-        requester.state,
-        requester.pincode,
-      ].filter(Boolean);
-
-      if (parts.length > 0) {
-        return parts.join(", ");
-      }
-    }
-
-    return (
-      request?.fullAddress ||
-      [
-        request?.address,
-        request?.buyerAddress,
-        request?.city,
-        request?.state,
-        request?.pincode,
-      ]
-        .filter(Boolean)
-        .join(", ") ||
-      "Not provided"
-    );
-  };
-
-  // =====================================================
-  // GET DONOR NAME
-  // =====================================================
-
-  const getDonorName = (request) => {
-    const donor =
-      request?.donation?.donor;
-
-    if (donor) {
-      const firstName =
-        donor.firstName || "";
-
-      const lastName =
-        donor.lastName || "";
-
-      const fullName =
-        `${firstName} ${lastName}`.trim();
-
-      if (fullName) return fullName;
-    }
-
-    return (
-      request?.donorName ||
-      "Donor"
-    );
-  };
-
-  // =====================================================
-  // GET DONOR EMAIL
-  // =====================================================
-
-  const getDonorEmail = (request) => {
-    return (
-      request?.donation?.donor?.email ||
-      request?.donorEmail ||
-      ""
-    );
-  };
-
-  // =====================================================
-  // GET DONOR PHONE
-  // =====================================================
-
-  const getDonorPhone = (request) => {
-    return (
-      request?.donation?.donor?.phone ||
-      request?.donorPhone ||
-      "Not provided"
-    );
-  };
-
-  // =====================================================
-  // GET DONOR ADDRESS
-  // =====================================================
-
-  const getDonorAddress = (request) => {
-    const donor =
-      request?.donation?.donor;
-
-    if (donor) {
-      const parts = [
-        donor.address,
-        donor.city,
-        donor.state,
-        donor.pincode,
-      ].filter(Boolean);
-
-      if (parts.length > 0) {
-        return parts.join(", ");
-      }
-    }
-
-    return (
-      request?.donorAddress ||
-      "Not provided"
-    );
-  };
-
-  // =====================================================
-  // GET ITEM NAME
-  // =====================================================
-
-  const getItemName = (request) => {
-    return (
-      request?.donation?.itemName ||
-      request?.productName ||
-      request?.itemName ||
-      "Donation Item"
-    );
-  };
-
-  // =====================================================
-  // GET CATEGORY
-  // =====================================================
-
-  const getCategory = (request) => {
-    return (
-      request?.donation?.category ||
-      request?.category ||
-      "Donation"
-    );
-  };
-
-  // =====================================================
-  // GET MESSAGE LINK
-  // =====================================================
-
-  const getMessageLink = (request) => {
-    const buyerId = getBuyerId(request);
-    const buyerEmail =
-      getBuyerEmail(request);
-    const itemName =
-      getItemName(request);
-
-    const params = new URLSearchParams();
-
-    if (buyerId) {
-      params.set(
-        "userId",
-        String(buyerId)
+        return {
+          ...previous,
+          status: newStatus,
+          updatedAt: now,
+          itemStatus:
+            newStatus === "Approved"
+              ? "Claimed"
+              : "Available",
+        };
+      });
+    } catch (error) {
+      console.error(
+        "UPDATE REQUEST ERROR:",
+        error
       );
     }
-
-    if (buyerEmail) {
-      params.set(
-        "email",
-        buyerEmail
-      );
-    }
-
-    if (itemName) {
-      params.set(
-        "item",
-        itemName
-      );
-    }
-
-    return `/dashboard/messages?${params.toString()}`;
   };
 
-  // =====================================================
-  // APPROVE REQUEST
-  // =====================================================
+  // =========================================================
+  // APPROVE
+  // =========================================================
 
-  const approveRequest = async (request) => {
-    if (!currentUser?.id) {
-      alert("Please login again.");
+  const approveRequest = (request) => {
+    if (
+      request.status !== "Pending"
+    ) {
       return;
     }
 
     const confirmApprove =
       window.confirm(
-        `Approve donation request for "${getItemName(
+        `Approve request for "${getProductName(
           request
         )}"?`
       );
 
-    if (!confirmApprove) return;
-
-    try {
-      setActionLoading(true);
-
-      const response = await fetch(
-        `/api/donation-requests/${request.id}/approve`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            donorId: String(currentUser.id),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      console.log(
-        "APPROVE RESPONSE:",
-        data
-      );
-
-      if (!response.ok || !data.success) {
-        alert(
-          data.message ||
-            "Could not approve request."
-        );
-        return;
-      }
-
-      alert(
-        "Request approved successfully. The item is now reserved for this buyer."
-      );
-
-      setSelectedRequest(null);
-
-      /*
-       * Reload from Prisma.
-       */
-      await loadRequests(currentUser);
-
-      window.dispatchEvent(
-        new Event("requestsChanged")
-      );
-    } catch (error) {
-      console.error(
-        "APPROVE REQUEST ERROR:",
-        error
-      );
-
-      alert(
-        "Something went wrong while approving the request."
-      );
-    } finally {
-      setActionLoading(false);
+    if (!confirmApprove) {
+      return;
     }
+
+    // =====================================================
+    // CHECK IF ANOTHER REQUEST IS ALREADY APPROVED
+    // =====================================================
+
+    const allRequests =
+      JSON.parse(
+        localStorage.getItem(
+          "donationRequests"
+        )
+      ) || [];
+
+    const alreadyApproved =
+      allRequests.some(
+        (item) =>
+          String(
+            item.productId
+          ) ===
+            String(
+              request.productId
+            ) &&
+          String(
+            item.category || ""
+          ).toLowerCase() ===
+            String(
+              request.category || ""
+            ).toLowerCase() &&
+          item.status === "Approved"
+      );
+
+    if (alreadyApproved) {
+      alert(
+        "This item has already been approved for another buyer."
+      );
+
+      loadRequests();
+
+      return;
+    }
+
+    updateRequestStatus(
+      request.id,
+      "Approved"
+    );
+
+    alert(
+      "Donation request approved successfully."
+    );
   };
 
-  // =====================================================
-  // REJECT REQUEST
-  // =====================================================
+  // =========================================================
+  // REJECT
+  // =========================================================
 
-  const rejectRequest = async (request) => {
-    if (!currentUser?.id) {
-      alert("Please login again.");
+  const rejectRequest = (request) => {
+    if (
+      request.status !== "Pending"
+    ) {
       return;
     }
 
     const confirmReject =
       window.confirm(
-        `Reject donation request for "${getItemName(
+        `Reject request for "${getProductName(
           request
         )}"?`
       );
 
-    if (!confirmReject) return;
-
-    try {
-      setActionLoading(true);
-
-      const response = await fetch(
-        `/api/donation-requests/${request.id}/reject`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            donorId: String(currentUser.id),
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      console.log(
-        "REJECT RESPONSE:",
-        data
-      );
-
-      if (!response.ok || !data.success) {
-        alert(
-          data.message ||
-            "Could not reject request."
-        );
-        return;
-      }
-
-      alert(
-        "Request rejected. The item is available for other buyers."
-      );
-
-      setSelectedRequest(null);
-
-      /*
-       * Reload from Prisma.
-       */
-      await loadRequests(currentUser);
-
-      window.dispatchEvent(
-        new Event("requestsChanged")
-      );
-    } catch (error) {
-      console.error(
-        "REJECT REQUEST ERROR:",
-        error
-      );
-
-      alert(
-        "Something went wrong while rejecting the request."
-      );
-    } finally {
-      setActionLoading(false);
+    if (!confirmReject) {
+      return;
     }
+
+    updateRequestStatus(
+      request.id,
+      "Rejected"
+    );
+
+    alert(
+      "Donation request rejected."
+    );
   };
 
-  // =====================================================
+  // =========================================================
+  // MESSAGE
+  // =========================================================
+
+  const openMessage = (request) => {
+    // Save selected conversation information
+    localStorage.setItem(
+      "openConversation",
+      JSON.stringify({
+        requestId: request.id,
+
+        productId:
+          request.productId,
+
+        category:
+          request.category,
+
+        donorId:
+          request.donorId,
+
+        donorName:
+          request.donorName,
+
+        donorEmail:
+          request.donorEmail,
+
+        requesterId:
+          request.requesterId,
+
+        requesterName:
+          request.requesterName,
+
+        requesterEmail:
+          request.requesterEmail,
+
+        productName:
+          getProductName(request),
+      })
+    );
+
+    router.push(
+      "/dashboard/messages"
+    );
+  };
+
+  // =========================================================
   // FILTER
-  // =====================================================
+  // =========================================================
 
   const filteredRequests =
     activeTab === "All"
       ? requests
       : requests.filter(
           (request) =>
-            normalizeStatus(
-              request.status
-            ) === activeTab
+            (request.status ||
+              "Pending") ===
+            activeTab
         );
 
-  // =====================================================
+  // =========================================================
   // COUNTS
-  // =====================================================
+  // =========================================================
 
   const allCount =
     requests.length;
@@ -618,130 +437,52 @@ export default function RequestsPage() {
   const pendingCount =
     requests.filter(
       (request) =>
-        normalizeStatus(
-          request.status
-        ) === "Pending"
+        request.status ===
+        "Pending"
     ).length;
 
   const approvedCount =
     requests.filter(
       (request) =>
-        normalizeStatus(
-          request.status
-        ) === "Approved"
+        request.status ===
+        "Approved"
     ).length;
 
   const rejectedCount =
     requests.filter(
       (request) =>
-        normalizeStatus(
-          request.status
-        ) === "Rejected"
+        request.status ===
+        "Rejected"
     ).length;
 
-  // =====================================================
-  // STATUS BADGE
-  // =====================================================
+  // =========================================================
+  // NOT LOGGED IN
+  // =========================================================
 
-  const StatusBadge = ({
-    status,
-  }) => {
-    const normalizedStatus =
-      normalizeStatus(status);
-
-    if (
-      normalizedStatus ===
-      "Approved"
-    ) {
-      return (
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 border border-green-200 text-sm font-semibold">
-          <CheckCircle size={16} />
-          Approved
-        </span>
-      );
-    }
-
-    if (
-      normalizedStatus ===
-      "Rejected"
-    ) {
-      return (
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-semibold">
-          <XCircle size={16} />
-          Rejected
-        </span>
-      );
-    }
-
-    if (
-      normalizedStatus ===
-      "Completed"
-    ) {
-      return (
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 text-blue-700 border border-blue-200 text-sm font-semibold">
-          <CheckCircle size={16} />
-          Completed
-        </span>
-      );
-    }
-
-    if (
-      normalizedStatus ===
-      "Cancelled"
-    ) {
-      return (
-        <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gray-50 text-gray-700 border border-gray-200 text-sm font-semibold">
-          <XCircle size={16} />
-          Cancelled
-        </span>
-      );
-    }
-
-    return (
-      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 text-sm font-semibold">
-        <Clock size={16} />
-        Pending
-      </span>
-    );
-  };
-
-  // =====================================================
-  // LOADING
-  // =====================================================
-
-  if (loading) {
+  if (!currentUser) {
     return (
       <>
         <Sidebar />
 
         <main className="min-h-screen bg-slate-50 ml-64 p-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="bg-white border border-gray-200 rounded-2xl p-14 text-center shadow-sm">
-              <div className="w-16 h-16 rounded-2xl bg-green-50 flex items-center justify-center mx-auto">
-                <Package
-                  size={30}
-                  className="text-green-600 animate-pulse"
-                />
-              </div>
+          <div className="max-w-5xl mx-auto bg-white rounded-3xl p-12 text-center border">
+            <Package
+              size={50}
+              className="mx-auto text-gray-400"
+            />
 
-              <h2 className="text-xl font-bold mt-5">
-                Loading Requests...
-              </h2>
+            <h1 className="text-2xl font-bold mt-5">
+              Please Login
+            </h1>
 
-              <p className="text-gray-500 mt-2">
-                Loading donation requests
-                from the database.
-              </p>
-            </div>
+            <p className="text-gray-500 mt-2">
+              Login to view your donation requests.
+            </p>
           </div>
         </main>
       </>
     );
   }
-
-  // =====================================================
-  // UI
-  // =====================================================
 
   return (
     <>
@@ -755,7 +496,8 @@ export default function RequestsPage() {
           ================================================= */}
 
           <div className="mb-8">
-            <div className="flex items-center gap-3 mb-2">
+
+            <div className="flex items-center gap-3">
 
               <div className="w-12 h-12 rounded-2xl bg-green-100 flex items-center justify-center">
                 <Package
@@ -765,125 +507,79 @@ export default function RequestsPage() {
               </div>
 
               <div>
+
                 <h1 className="text-3xl font-bold text-gray-900">
                   Donation Requests
                 </h1>
 
                 <p className="text-gray-500 mt-1">
-                  {userRole === "Donor"
-                    ? "Review and manage requests received for your donated items."
-                    : "Track the donation requests you have sent."}
+                  {role.toLowerCase() === "donor"
+                    ? "Manage requests received for your donated items."
+                    : "View the donation requests you have sent."}
                 </p>
+
               </div>
 
             </div>
+
           </div>
 
           {/* =================================================
-              STAT CARDS
+              STATS
           ================================================= */}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
 
-            {/* TOTAL */}
+            <StatCard
+              title="Total Requests"
+              count={allCount}
+              icon={
+                <Package
+                  size={21}
+                  className="text-blue-600"
+                />
+              }
+              bg="bg-blue-50"
+            />
 
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <div className="flex justify-between items-center">
+            <StatCard
+              title="Pending"
+              count={pendingCount}
+              icon={
+                <Clock
+                  size={21}
+                  className="text-yellow-600"
+                />
+              }
+              bg="bg-yellow-50"
+              text="text-yellow-600"
+            />
 
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Total Requests
-                  </p>
+            <StatCard
+              title="Approved"
+              count={approvedCount}
+              icon={
+                <CheckCircle
+                  size={21}
+                  className="text-green-600"
+                />
+              }
+              bg="bg-green-50"
+              text="text-green-600"
+            />
 
-                  <h2 className="text-2xl font-bold mt-1">
-                    {allCount}
-                  </h2>
-                </div>
-
-                <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
-                  <Package
-                    size={21}
-                    className="text-blue-600"
-                  />
-                </div>
-
-              </div>
-            </div>
-
-            {/* PENDING */}
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <div className="flex justify-between items-center">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Pending
-                  </p>
-
-                  <h2 className="text-2xl font-bold mt-1 text-yellow-600">
-                    {pendingCount}
-                  </h2>
-                </div>
-
-                <div className="w-11 h-11 rounded-xl bg-yellow-50 flex items-center justify-center">
-                  <Clock
-                    size={21}
-                    className="text-yellow-600"
-                  />
-                </div>
-
-              </div>
-            </div>
-
-            {/* APPROVED */}
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <div className="flex justify-between items-center">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Approved
-                  </p>
-
-                  <h2 className="text-2xl font-bold mt-1 text-green-600">
-                    {approvedCount}
-                  </h2>
-                </div>
-
-                <div className="w-11 h-11 rounded-xl bg-green-50 flex items-center justify-center">
-                  <CheckCircle
-                    size={21}
-                    className="text-green-600"
-                  />
-                </div>
-
-              </div>
-            </div>
-
-            {/* REJECTED */}
-
-            <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-              <div className="flex justify-between items-center">
-
-                <div>
-                  <p className="text-sm text-gray-500">
-                    Rejected
-                  </p>
-
-                  <h2 className="text-2xl font-bold mt-1 text-red-600">
-                    {rejectedCount}
-                  </h2>
-                </div>
-
-                <div className="w-11 h-11 rounded-xl bg-red-50 flex items-center justify-center">
-                  <XCircle
-                    size={21}
-                    className="text-red-600"
-                  />
-                </div>
-
-              </div>
-            </div>
+            <StatCard
+              title="Rejected"
+              count={rejectedCount}
+              icon={
+                <XCircle
+                  size={21}
+                  className="text-red-600"
+                />
+              }
+              bg="bg-red-50"
+              text="text-red-600"
+            />
 
           </div>
 
@@ -891,239 +587,162 @@ export default function RequestsPage() {
               TABS
           ================================================= */}
 
-          <div className="bg-white border border-gray-200 rounded-2xl p-2 mb-6 shadow-sm">
+          <div className="bg-white border rounded-2xl p-2 mb-6 shadow-sm">
 
             <div className="flex flex-wrap gap-2">
 
-              <button
-                onClick={() =>
-                  setActiveTab("All")
-                }
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition ${
-                  activeTab === "All"
-                    ? "bg-green-700 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                All ({allCount})
-              </button>
-
-              <button
-                onClick={() =>
-                  setActiveTab("Pending")
-                }
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition ${
-                  activeTab === "Pending"
-                    ? "bg-yellow-500 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Pending ({pendingCount})
-              </button>
-
-              <button
-                onClick={() =>
-                  setActiveTab("Approved")
-                }
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition ${
-                  activeTab === "Approved"
-                    ? "bg-green-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Approved ({approvedCount})
-              </button>
-
-              <button
-                onClick={() =>
-                  setActiveTab("Rejected")
-                }
-                className={`px-5 py-2.5 rounded-xl font-semibold text-sm transition ${
-                  activeTab === "Rejected"
-                    ? "bg-red-600 text-white"
-                    : "text-gray-600 hover:bg-gray-100"
-                }`}
-              >
-                Rejected ({rejectedCount})
-              </button>
+              {[
+                ["All", allCount],
+                ["Pending", pendingCount],
+                ["Approved", approvedCount],
+                ["Rejected", rejectedCount],
+              ].map(
+                ([tab, count]) => (
+                  <button
+                    key={tab}
+                    onClick={() =>
+                      setActiveTab(tab)
+                    }
+                    className={`px-5 py-2.5 rounded-xl font-semibold text-sm ${
+                      activeTab === tab
+                        ? "bg-green-700 text-white"
+                        : "text-gray-600 hover:bg-gray-100"
+                    }`}
+                  >
+                    {tab} ({count})
+                  </button>
+                )
+              )}
 
             </div>
+
           </div>
 
           {/* =================================================
-              REQUEST LIST
+              EMPTY
           ================================================= */}
 
           {filteredRequests.length === 0 ? (
+            <div className="bg-white border rounded-2xl p-14 text-center shadow-sm">
 
-            <div className="bg-white border border-gray-200 rounded-2xl p-14 text-center shadow-sm">
-
-              <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mx-auto">
-                <Package
-                  size={30}
-                  className="text-gray-400"
-                />
-              </div>
+              <Package
+                size={45}
+                className="mx-auto text-gray-400"
+              />
 
               <h2 className="text-xl font-bold mt-5">
-                No{" "}
-                {activeTab.toLowerCase()}{" "}
-                requests
+                No {activeTab.toLowerCase()} requests
               </h2>
 
               <p className="text-gray-500 mt-2">
-                {userRole === "Donor"
-                  ? "Donation requests will appear here when buyers request your items."
+                {role.toLowerCase() ===
+                "donor"
+                  ? "Requests from buyers will appear here."
                   : "Your donation requests will appear here."}
               </p>
 
             </div>
-
           ) : (
 
             <div className="space-y-4">
 
               {filteredRequests.map(
-                (request, index) => {
+                (request) => (
 
-                  const requestKey =
-                    request.id ||
-                    `${getBuyerId(
-                      request
-                    )}-${index}`;
+                  <div
+                    key={request.id}
+                    className="bg-white border rounded-2xl shadow-sm overflow-hidden"
+                  >
 
-                  const status =
-                    normalizeStatus(
-                      request.status
-                    );
+                    <div className="p-6">
 
-                  return (
-                    <div
-                      key={requestKey}
-                      className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition overflow-hidden"
-                    >
+                      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
 
-                      <div className="p-6">
+                        {/* LEFT */}
 
-                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5">
+                        <div className="flex gap-4">
 
-                          {/* =================================================
-                              LEFT
-                          ================================================= */}
+                          <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
 
-                          <div className="flex gap-4 min-w-0">
-
-                            <div className="w-14 h-14 rounded-xl bg-green-50 flex items-center justify-center shrink-0">
+                            {request.productImage ? (
+                              <img
+                                src={
+                                  request.productImage
+                                }
+                                alt=""
+                                className="w-full h-full object-contain rounded-xl"
+                              />
+                            ) : (
                               <Package
                                 size={25}
                                 className="text-green-700"
                               />
-                            </div>
+                            )}
 
-                            <div className="min-w-0">
+                          </div>
 
-                              <h2 className="text-xl font-bold text-gray-900 truncate">
-                                {getItemName(
-                                  request
-                                )}
-                              </h2>
+                          <div>
 
-                              <p className="text-gray-500 mt-1">
-                                {userRole === "Donor"
-                                  ? "Requested by"
-                                  : "Requested from"}{" "}
-                                <span className="font-semibold text-gray-700">
-                                  {userRole === "Donor"
-                                    ? getBuyerName(
-                                        request
-                                      )
-                                    : getDonorName(
-                                        request
-                                      )}
-                                </span>
-                              </p>
+                            <h2 className="text-xl font-bold text-gray-900">
+                              {getProductName(
+                                request
+                              )}
+                            </h2>
 
-                              <div className="flex flex-wrap items-center gap-4 mt-3 text-sm text-gray-600">
+                            <p className="text-gray-500 mt-1">
 
+                              {role.toLowerCase() ===
+                              "donor"
+                                ? "Requested by"
+                                : "Donor"}
+
+                              {" "}
+
+                              <span className="font-semibold text-gray-800">
+
+                                {role.toLowerCase() ===
+                                "donor"
+                                  ? request.requesterName ||
+                                    "Buyer"
+                                  : request.donorName ||
+                                    "Donor"}
+
+                              </span>
+
+                            </p>
+
+                            <div className="flex flex-wrap gap-4 mt-3 text-sm text-gray-600">
+
+                              <span>
+                                Quantity:{" "}
+                                <b>
+                                  {request.quantity ||
+                                    1}
+                                </b>
+                              </span>
+
+                              {request.category && (
                                 <span>
                                   Category:{" "}
                                   <b>
-                                    {getCategory(
-                                      request
-                                    )}
+                                    {request.category}
                                   </b>
                                 </span>
+                              )}
 
-                                <span>
-                                  Quantity:{" "}
-                                  <b>
-                                    {request.quantity ||
-                                      1}
-                                  </b>
+                              {request.createdAt && (
+                                <span className="flex items-center gap-1">
+                                  <CalendarDays
+                                    size={14}
+                                  />
+
+                                  {new Date(
+                                    request.createdAt
+                                  ).toLocaleDateString(
+                                    "en-IN"
+                                  )}
                                 </span>
-
-                                {request.createdAt && (
-                                  <span className="flex items-center gap-1">
-                                    <CalendarDays
-                                      size={14}
-                                    />
-
-                                    {new Date(
-                                      request.createdAt
-                                    ).toLocaleDateString(
-                                      "en-IN"
-                                    )}
-                                  </span>
-                                )}
-
-                              </div>
-
-                            </div>
-                          </div>
-
-                          {/* =================================================
-                              RIGHT
-                          ================================================= */}
-
-                          <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-3 shrink-0">
-
-                            <StatusBadge
-                              status={status}
-                            />
-
-                            <div className="flex gap-2 flex-wrap">
-
-                              <button
-                                onClick={() =>
-                                  setSelectedRequest(
-                                    request
-                                  )
-                                }
-                                className="bg-green-700 hover:bg-green-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-                              >
-                                View Details
-                              </button>
-
-                              {/* MESSAGE BUYER */}
-
-                              {userRole ===
-                                "Donor" &&
-                                getBuyerEmail(
-                                  request
-                                ) && (
-                                  <Link
-                                    href={getMessageLink(
-                                      request
-                                    )}
-                                    className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition"
-                                  >
-                                    <MessageCircle
-                                      size={17}
-                                    />
-
-                                    Message
-                                  </Link>
-                                )}
+                              )}
 
                             </div>
 
@@ -1131,64 +750,74 @@ export default function RequestsPage() {
 
                         </div>
 
-                        {/* =================================================
-                            QUICK ACTIONS - ONLY DONOR
-                        ================================================= */}
+                        {/* RIGHT */}
 
-                        {userRole ===
-                          "Donor" &&
-                          status ===
-                            "Pending" && (
+                        <div className="flex flex-col items-start lg:items-end gap-3">
 
-                            <div className="border-t mt-5 pt-5 flex flex-col sm:flex-row justify-end gap-3">
+                          <StatusBadge
+                            status={
+                              request.status ||
+                              "Pending"
+                            }
+                          />
 
-                              <button
-                                disabled={
-                                  actionLoading
-                                }
-                                onClick={() =>
-                                  rejectRequest(
-                                    request
-                                  )
-                                }
-                                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <Ban
-                                  size={17}
-                                />
+                          <button
+                            onClick={() =>
+                              setSelectedRequest(
+                                request
+                              )
+                            }
+                            className="bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold"
+                          >
+                            View Details
+                          </button>
 
-                                {actionLoading
-                                  ? "Please wait..."
-                                  : "Reject Request"}
-                              </button>
-
-                              <button
-                                disabled={
-                                  actionLoading
-                                }
-                                onClick={() =>
-                                  approveRequest(
-                                    request
-                                  )
-                                }
-                                className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed"
-                              >
-                                <Check
-                                  size={17}
-                                />
-
-                                {actionLoading
-                                  ? "Please wait..."
-                                  : "Approve Request"}
-                              </button>
-
-                            </div>
-                          )}
+                        </div>
 
                       </div>
+
+                      {/* =================================================
+                          DONOR ACTIONS
+                      ================================================= */}
+
+                      {role.toLowerCase() ===
+                        "donor" &&
+                        request.status ===
+                          "Pending" && (
+
+                          <div className="border-t mt-5 pt-5 flex flex-col sm:flex-row justify-end gap-3">
+
+                            <button
+                              onClick={() =>
+                                rejectRequest(
+                                  request
+                                )
+                              }
+                              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold"
+                            >
+                              <Ban size={17} />
+                              Reject Request
+                            </button>
+
+                            <button
+                              onClick={() =>
+                                approveRequest(
+                                  request
+                                )
+                              }
+                              className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-green-600 text-white font-semibold"
+                            >
+                              <Check size={17} />
+                              Approve Request
+                            </button>
+
+                          </div>
+                        )}
+
                     </div>
-                  );
-                }
+
+                  </div>
+                )
               )}
 
             </div>
@@ -1198,7 +827,7 @@ export default function RequestsPage() {
       </main>
 
       {/* =====================================================
-          DETAILS MODAL
+          MODAL
       ===================================================== */}
 
       {selectedRequest && (
@@ -1219,7 +848,7 @@ export default function RequestsPage() {
 
             {/* HEADER */}
 
-            <div className="p-6 border-b flex items-center justify-between">
+            <div className="p-6 border-b flex justify-between">
 
               <div>
 
@@ -1227,7 +856,7 @@ export default function RequestsPage() {
                   Donation Request
                 </p>
 
-                <h2 className="text-2xl font-bold mt-1">
+                <h2 className="text-2xl font-bold">
                   Request Details
                 </h2>
 
@@ -1241,7 +870,7 @@ export default function RequestsPage() {
                 }
                 className="p-2 rounded-full hover:bg-gray-100"
               >
-                <X size={22} />
+                <X />
               </button>
 
             </div>
@@ -1250,313 +879,188 @@ export default function RequestsPage() {
 
             <div className="p-6 space-y-5">
 
-              {/* ITEM */}
+              {/* PRODUCT */}
 
-              <div className="bg-green-50 rounded-2xl p-5">
+              <div className="bg-green-50 rounded-2xl p-5 flex gap-4">
 
-                <p className="text-sm text-green-700">
-                  Requested Item
-                </p>
+                {selectedRequest.productImage && (
+                  <img
+                    src={
+                      selectedRequest.productImage
+                    }
+                    alt=""
+                    className="w-20 h-20 object-contain bg-white rounded-xl"
+                  />
+                )}
 
-                <h3 className="text-xl font-bold text-gray-900 mt-1">
-                  {getItemName(
-                    selectedRequest
-                  )}
-                </h3>
+                <div>
 
-                <p className="text-sm text-gray-600 mt-2">
-                  Category:{" "}
-                  <b>
-                    {getCategory(
+                  <p className="text-sm text-green-700">
+                    Requested Item
+                  </p>
+
+                  <h3 className="text-xl font-bold">
+                    {getProductName(
                       selectedRequest
                     )}
-                  </b>
-                </p>
+                  </h3>
 
-                <p className="text-sm text-gray-600 mt-1">
-                  Quantity:{" "}
-                  <b>
+                  <p className="text-gray-600">
+                    Category:{" "}
+                    {selectedRequest.category ||
+                      "Donation"}
+                  </p>
+
+                  <p className="text-gray-600">
+                    Quantity:{" "}
                     {selectedRequest.quantity ||
                       1}
-                  </b>
-                </p>
+                  </p>
 
-                <div className="mt-3">
-                  <StatusBadge
-                    status={
-                      selectedRequest.status
-                    }
+                </div>
+
+              </div>
+
+              {/* BUYER */}
+
+              <DetailRow
+                icon={
+                  <User
+                    size={20}
+                    className="text-blue-600"
                   />
-                </div>
+                }
+                title="Buyer Name"
+                value={
+                  selectedRequest.requesterName ||
+                  selectedRequest.buyerName ||
+                  "Not provided"
+                }
+              />
 
-              </div>
+              <DetailRow
+                icon={
+                  <Mail
+                    size={20}
+                    className="text-blue-600"
+                  />
+                }
+                title="Buyer Email"
+                value={
+                  selectedRequest.requesterEmail ||
+                  selectedRequest.buyerEmail ||
+                  "Not provided"
+                }
+              />
 
-              {/* =================================================
-                  BUYER DETAILS
-              ================================================= */}
+              <DetailRow
+                icon={
+                  <Phone
+                    size={20}
+                    className="text-purple-600"
+                  />
+                }
+                title="Buyer Phone"
+                value={
+                  selectedRequest.requesterPhone ||
+                  selectedRequest.buyerPhone ||
+                  "Not provided"
+                }
+              />
 
-              <div className="border rounded-2xl p-5">
-
-                <h3 className="text-lg font-bold text-gray-900 mb-4">
-                  Buyer Details
-                </h3>
-
-                {/* BUYER NAME */}
-
-                <div className="flex gap-4 mb-4">
-
-                  <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                    <User
-                      size={20}
-                      className="text-blue-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Buyer Name
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {getBuyerName(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* BUYER PHONE */}
-
-                <div className="flex gap-4 mb-4">
-
-                  <div className="w-11 h-11 rounded-xl bg-purple-50 flex items-center justify-center shrink-0">
-                    <Phone
-                      size={20}
-                      className="text-purple-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Buyer Phone
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {getBuyerPhone(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* BUYER EMAIL */}
-
-                {getBuyerEmail(
+              <DetailRow
+                icon={
+                  <MapPin
+                    size={20}
+                    className="text-orange-600"
+                  />
+                }
+                title="Buyer Address"
+                value={getAddress(
                   selectedRequest
-                ) && (
-
-                  <div className="flex gap-4 mb-4">
-
-                    <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                      <Mail
-                        size={20}
-                        className="text-blue-600"
-                      />
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Buyer Email
-                      </p>
-
-                      <p className="font-semibold text-gray-900 break-all">
-                        {getBuyerEmail(
-                          selectedRequest
-                        )}
-                      </p>
-                    </div>
-
-                  </div>
                 )}
+              />
 
-                {/* BUYER ADDRESS */}
+              {/* DONOR */}
 
-                <div className="flex gap-4">
+              <div className="border-t pt-5">
 
-                  <div className="w-11 h-11 rounded-xl bg-orange-50 flex items-center justify-center shrink-0">
-                    <MapPin
-                      size={20}
-                      className="text-orange-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Buyer Address
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {getBuyerAddress(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-              </div>
-
-              {/* =================================================
-                  DONOR DETAILS
-              ================================================= */}
-
-              <div className="border border-green-200 rounded-2xl p-5 bg-green-50">
-
-                <h3 className="text-lg font-bold text-green-800 mb-4">
-                  Donor Details
+                <h3 className="font-bold text-lg mb-4">
+                  Donor Information
                 </h3>
 
-                {/* DONOR NAME */}
-
-                <div className="flex gap-4 mb-4">
-
-                  <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
+                <DetailRow
+                  icon={
                     <User
                       size={20}
                       className="text-green-600"
                     />
-                  </div>
+                  }
+                  title="Donor Name"
+                  value={
+                    selectedRequest.donorName ||
+                    "Not provided"
+                  }
+                />
 
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Donor Name
-                    </p>
+                <DetailRow
+                  icon={
+                    <Mail
+                      size={20}
+                      className="text-green-600"
+                    />
+                  }
+                  title="Donor Email"
+                  value={
+                    selectedRequest.donorEmail ||
+                    "Not provided"
+                  }
+                />
 
-                    <p className="font-semibold text-gray-900">
-                      {getDonorName(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* DONOR PHONE */}
-
-                <div className="flex gap-4 mb-4">
-
-                  <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
+                <DetailRow
+                  icon={
                     <Phone
                       size={20}
                       className="text-green-600"
                     />
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Donor Phone
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {getDonorPhone(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* DONOR EMAIL */}
-
-                {getDonorEmail(
-                  selectedRequest
-                ) && (
-
-                  <div className="flex gap-4 mb-4">
-
-                    <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
-                      <Mail
-                        size={20}
-                        className="text-green-600"
-                      />
-                    </div>
-
-                    <div>
-                      <p className="text-sm text-gray-500">
-                        Donor Email
-                      </p>
-
-                      <p className="font-semibold text-gray-900 break-all">
-                        {getDonorEmail(
-                          selectedRequest
-                        )}
-                      </p>
-                    </div>
-
-                  </div>
-                )}
-
-                {/* DONOR ADDRESS */}
-
-                <div className="flex gap-4">
-
-                  <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center shrink-0">
-                    <MapPin
-                      size={20}
-                      className="text-green-600"
-                    />
-                  </div>
-
-                  <div>
-                    <p className="text-sm text-gray-500">
-                      Donor Address
-                    </p>
-
-                    <p className="font-semibold text-gray-900">
-                      {getDonorAddress(
-                        selectedRequest
-                      )}
-                    </p>
-                  </div>
-
-                </div>
+                  }
+                  title="Donor Phone"
+                  value={
+                    selectedRequest.donorPhone ||
+                    "Not provided"
+                  }
+                />
 
               </div>
 
-              {/* =================================================
-                  MESSAGE
-              ================================================= */}
+              {/* MESSAGE */}
 
               {selectedRequest.message && (
-
                 <div className="bg-gray-50 rounded-2xl p-5">
 
                   <p className="text-sm text-gray-500">
-                    Buyer's Message
+                    Message
                   </p>
 
-                  <p className="text-gray-700 mt-2">
+                  <p className="mt-2 text-gray-700">
                     "{selectedRequest.message}"
                   </p>
 
                 </div>
               )}
 
-              {/* =================================================
-                  STATUS
-              ================================================= */}
+              {/* STATUS */}
 
-              <div className="border-t pt-5 flex items-center justify-between">
+              <div className="border-t pt-5 flex justify-between items-center">
 
-                <span className="text-gray-500 font-medium">
+                <span className="font-medium text-gray-500">
                   Current Status
                 </span>
 
                 <StatusBadge
                   status={
-                    selectedRequest.status
+                    selectedRequest.status ||
+                    "Pending"
                   }
                 />
 
@@ -1564,98 +1068,88 @@ export default function RequestsPage() {
 
             </div>
 
-            {/* =================================================
-                MODAL ACTIONS
-            ================================================= */}
+            {/* ACTIONS */}
 
             <div className="px-6 pb-6">
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
 
-                {/* MESSAGE BUYER */}
+                {/* MESSAGE */}
 
-                {userRole ===
-                  "Donor" &&
-                  getBuyerEmail(
-                    selectedRequest
-                  ) && (
+                <button
+                  onClick={() =>
+                    openMessage(
+                      selectedRequest
+                    )
+                  }
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                >
+                  <MessageCircle
+                    size={18}
+                  />
+                  Message{" "}
+                  {role.toLowerCase() ===
+                  "donor"
+                    ? "Buyer"
+                    : "Donor"}
+                </button>
 
-                    <Link
-                      href={getMessageLink(
-                        selectedRequest
-                      )}
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-semibold transition"
-                    >
-                      <MessageCircle
-                        size={18}
-                      />
+                {/* CLOSE */}
 
-                      Message Buyer
-                    </Link>
-                  )}
+                <button
+                  onClick={() =>
+                    setSelectedRequest(
+                      null
+                    )
+                  }
+                  className="bg-gray-900 text-white py-3 rounded-xl font-semibold"
+                >
+                  Close
+                </button>
 
-                {/* PENDING ACTIONS - DONOR ONLY */}
+              </div>
 
-                {userRole ===
-                  "Donor" &&
-                normalizeStatus(
-                  selectedRequest.status
-                ) === "Pending" ? (
+              {/* DONOR ACTIONS */}
 
-                  <>
+              {role.toLowerCase() ===
+                "donor" &&
+                selectedRequest.status ===
+                  "Pending" && (
+
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+
                     <button
-                      disabled={
-                        actionLoading
-                      }
                       onClick={() =>
                         rejectRequest(
                           selectedRequest
                         )
                       }
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl border border-red-200 text-red-600 hover:bg-red-50 font-semibold transition disabled:opacity-50"
+                      className="border border-red-200 text-red-600 py-3 rounded-xl font-semibold"
                     >
                       <XCircle
                         size={18}
+                        className="inline mr-2"
                       />
-
                       Reject
                     </button>
 
                     <button
-                      disabled={
-                        actionLoading
-                      }
                       onClick={() =>
                         approveRequest(
                           selectedRequest
                         )
                       }
-                      className="flex items-center justify-center gap-2 py-3 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition disabled:opacity-50"
+                      className="bg-green-600 text-white py-3 rounded-xl font-semibold"
                     >
                       <CheckCircle
                         size={18}
+                        className="inline mr-2"
                       />
-
                       Approve
                     </button>
-                  </>
 
-                ) : (
-
-                  <button
-                    onClick={() =>
-                      setSelectedRequest(
-                        null
-                      )
-                    }
-                    className="sm:col-span-2 w-full bg-gray-900 hover:bg-black text-white py-3 rounded-xl font-semibold"
-                  >
-                    Close
-                  </button>
-
+                  </div>
                 )}
-
-              </div>
 
             </div>
 
@@ -1663,7 +1157,146 @@ export default function RequestsPage() {
 
         </div>
       )}
-
     </>
+  );
+}
+
+// =========================================================
+// PRODUCT NAME
+// =========================================================
+
+function getProductName(request) {
+  return (
+    request.productName ||
+    request.itemName ||
+    request.name ||
+    "Donation Item"
+  );
+}
+
+// =========================================================
+// ADDRESS
+// =========================================================
+
+function getAddress(request) {
+  const parts = [
+    request.address ||
+      request.buyerAddress,
+
+    request.city,
+
+    request.state,
+
+    request.pincode,
+  ].filter(Boolean);
+
+  return (
+    parts.join(", ") ||
+    "Not provided"
+  );
+}
+
+// =========================================================
+// STATUS
+// =========================================================
+
+function StatusBadge({ status }) {
+  if (status === "Approved") {
+    return (
+      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-50 text-green-700 border border-green-200 text-sm font-semibold">
+        <CheckCircle size={16} />
+        Approved
+      </span>
+    );
+  }
+
+  if (status === "Rejected") {
+    return (
+      <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-red-50 text-red-700 border border-red-200 text-sm font-semibold">
+        <XCircle size={16} />
+        Rejected
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-50 text-yellow-700 border border-yellow-200 text-sm font-semibold">
+      <Clock size={16} />
+      Pending
+    </span>
+  );
+}
+
+// =========================================================
+// DETAIL ROW
+// =========================================================
+
+function DetailRow({
+  icon,
+  title,
+  value,
+}) {
+  return (
+    <div className="flex gap-4">
+
+      <div className="w-11 h-11 rounded-xl bg-gray-50 flex items-center justify-center shrink-0">
+        {icon}
+      </div>
+
+      <div className="min-w-0">
+
+        <p className="text-sm text-gray-500">
+          {title}
+        </p>
+
+        <p className="font-semibold text-gray-900 break-words">
+          {value}
+        </p>
+
+      </div>
+
+    </div>
+  );
+}
+
+// =========================================================
+// STAT CARD
+// =========================================================
+
+function StatCard({
+  title,
+  count,
+  icon,
+  bg,
+  text = "text-gray-900",
+}) {
+  return (
+    <div className="bg-white border rounded-2xl p-5 shadow-sm">
+
+      <div className="flex justify-between items-center">
+
+        <div>
+
+          <p className="text-sm text-gray-500">
+            {title}
+          </p>
+
+          <h2
+            className={`text-2xl font-bold mt-1 ${text}`}
+          >
+            {count}
+          </h2>
+
+        </div>
+
+        <div
+          className={`w-11 h-11 rounded-xl ${bg} flex items-center justify-center`}
+        >
+          {icon}
+        </div>
+
+      </div>
+
+    </div>
   );
 }

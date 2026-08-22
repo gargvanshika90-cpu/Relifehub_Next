@@ -20,6 +20,8 @@ import {
   ShieldCheck,
   Star,
   X,
+  ShoppingCart,
+  Check,
 } from "lucide-react";
 
 const products = [
@@ -101,14 +103,92 @@ export default function FoodDetailsPage() {
   const product = products.find(
     (item) => item.id === productId
   );
+const [showRequest, setShowRequest] = useState(false);
+const [quantity, setQuantity] = useState("1");
+const [message, setMessage] = useState("");
+const [addedToCart, setAddedToCart] = useState(false);
+// ==========================================
+// ADD TO CART
+// ==========================================
 
-  const [showRequest, setShowRequest] = useState(false);
-  const [quantity, setQuantity] = useState("1");
-  const [message, setMessage] = useState("");
+const handleAddToCart = () => {
+  try {
+    const savedCart = localStorage.getItem("cart");
 
+    const cart = savedCart
+      ? JSON.parse(savedCart)
+      : [];
+
+    const existingIndex = cart.findIndex(
+      (item) => String(item.id) === String(product.id)
+    );
+
+    if (existingIndex !== -1) {
+      // Increase quantity if already in cart
+      cart[existingIndex].quantity =
+        Number(cart[existingIndex].quantity || 1) + 1;
+    } else {
+      // Add new product
+      cart.push({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        image: product.image,
+
+        // IMPORTANT: actual cart price
+        price: Number(product.price),
+
+        originalPrice: product.originalPrice,
+
+        condition: product.condition,
+        brand: product.brand,
+
+        // Cart quantity
+        quantity: 1,
+
+        // Available quantity from donation listing
+        availableQuantity: product.quantity,
+
+        donorName: product.donorName,
+        donorPhone: product.donorPhone,
+
+        description: product.description,
+
+        address: product.address,
+        preferredDate: product.preferredDate,
+        preferredTime: product.preferredTime,
+      });
+    }
+
+    localStorage.setItem(
+      "cart",
+      JSON.stringify(cart)
+    );
+
+    // Tell Navbar / Cart page that cart changed
+    window.dispatchEvent(
+      new Event("cartChanged")
+    );
+
+    setAddedToCart(true);
+
+    alert(
+      `${product.name} added to cart successfully!`
+    );
+  } catch (error) {
+    console.error(
+      "Add to cart error:",
+      error
+    );
+
+    alert(
+      "Something went wrong while adding the item to cart."
+    );
+  }
+};
   // ==========================================
   // PRODUCT NOT FOUND
-  // ==========================================
+  // ========================================== 
 
   if (!product) {
     return (
@@ -128,6 +208,8 @@ export default function FoodDetailsPage() {
       </main>
     );
   }
+  
+  
 
   // ==========================================
   // REQUEST DONATION
@@ -523,10 +605,17 @@ export default function FoodDetailsPage() {
                 {product.donorPhone}
               </button>
 
-              <button className="border rounded-xl px-5 py-3 flex items-center gap-2">
-                <MessageCircle size={18} />
-                Chat
-              </button>
+          <Link
+  href={`/dashboard/messages?donor=${encodeURIComponent(
+    product.donorName
+  )}&phone=${encodeURIComponent(
+    product.donorPhone
+  )}`}
+  className="border rounded-xl px-5 py-3 flex items-center gap-2 hover:bg-gray-50"
+>
+  <MessageCircle size={18} />
+  Chat
+</Link>
 
             </div>
 
@@ -538,18 +627,57 @@ export default function FoodDetailsPage() {
             REQUEST BUTTON
         ========================================= */}
 
-        <div className="bg-white rounded-3xl shadow-md border p-5 mt-7">
+         <div className="bg-white rounded-3xl shadow-md border p-5 mt-7">
 
-          <button
-            onClick={handleRequestDonation}
-            className="w-full bg-green-700 text-white rounded-xl py-4 font-bold flex justify-center items-center gap-2 hover:bg-green-800"
+          <div className="grid md:grid-cols-2 gap-4">
+
+            {/* ADD TO CART */}
+
+           <button
+  onClick={handleAddToCart}
+  className={`w-full rounded-xl py-4 font-bold flex justify-center items-center gap-2 border-2 transition ${
+    addedToCart
+      ? "border-green-700 text-green-700 bg-green-50"
+      : "border-green-700 text-green-700 hover:bg-green-50"
+  }`}
+>
+  {addedToCart ? (
+    <>
+      <Check size={21} />
+      Added to Cart
+    </>
+  ) : (
+    <>
+      <ShoppingCart size={21} />
+      Add to Cart
+    </>
+  )}
+</button>
+
+            {/* REQUEST DONATION */}
+
+            <button
+              onClick={handleRequestDonation}
+              className="w-full bg-green-700 text-white rounded-xl py-4 font-bold flex justify-center items-center gap-2 hover:bg-green-800"
+            >
+
+              <Gift size={20} />
+
+              Request Donation
+
+            </button>
+
+          </div>
+
+          {/* GO TO CART */}
+
+          <Link
+            href="/cart"
+            className="mt-4 w-full flex justify-center items-center gap-2 text-green-700 font-semibold hover:underline"
           >
-
-            <Gift size={20} />
-
-            Request Donation
-
-          </button>
+            <ShoppingCart size={18} />
+            View My Cart
+          </Link>
 
         </div>
 

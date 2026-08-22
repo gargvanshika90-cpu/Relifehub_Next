@@ -12,6 +12,8 @@ import {
   Clock,
   Package,
 } from "lucide-react";
+import { useSearchParams } from "next/navigation";
+
 
 export default function MessagesPage() {
   const [currentUser, setCurrentUser] = useState(null);
@@ -20,11 +22,72 @@ export default function MessagesPage() {
   const [messages, setMessages] = useState([]);
   const [messageText, setMessageText] = useState("");
   const [search, setSearch] = useState("");
+const searchParams = useSearchParams();
+
+const donorFromUrl = searchParams.get("donor");
+const phoneFromUrl = searchParams.get("phone");
 
   // =====================================================
   // LOAD USER
   // =====================================================
 
+useEffect(() => {
+  if (!donorFromUrl) {
+    return;
+  }
+
+  const existingDonor = conversations.find(
+    (user) => {
+      const sameName =
+        user.name?.toLowerCase() ===
+        donorFromUrl.toLowerCase();
+
+      const samePhone =
+        !phoneFromUrl ||
+        user.phone === phoneFromUrl;
+
+      return sameName && samePhone;
+    }
+  );
+
+  if (existingDonor) {
+    setSelectedUser(existingDonor);
+    return;
+  }
+
+  if (phoneFromUrl) {
+    const newDonor = {
+      id: phoneFromUrl,
+      email: "",
+      phone: phoneFromUrl,
+      name: donorFromUrl,
+      image: null,
+      lastMessage: "",
+      lastTime: new Date().toISOString(),
+      unread: 0,
+    };
+
+    setConversations((prev) => {
+      const alreadyExists = prev.some(
+        (user) =>
+          String(user.id) ===
+          String(newDonor.id)
+      );
+
+      if (alreadyExists) {
+        return prev;
+      }
+
+      return [newDonor, ...prev];
+    });
+
+    setSelectedUser(newDonor);
+  }
+}, [
+  donorFromUrl,
+  phoneFromUrl,
+  conversations,
+]);
   useEffect(() => {
     loadMessages();
 
@@ -379,25 +442,94 @@ const loadMessages = () => {
 
     });
 
-    const finalUsers =
-      Object.values(userMap).sort(
-        (a, b) =>
-          new Date(b.lastTime) -
-          new Date(a.lastTime)
-      );
+ const finalUsers =
+  Object.values(userMap).sort(
+    (a, b) =>
+      new Date(b.lastTime) -
+      new Date(a.lastTime)
+  );
 
-    setConversations(
-      finalUsers
-    );
+// ==========================================
+// DONOR FROM FOOD DETAILS CHAT BUTTON
+// ==========================================
 
-    if (
-      !selectedUser &&
-      finalUsers.length > 0
-    ) {
-      setSelectedUser(
-        finalUsers[0]
-      );
-    }
+let updatedUsers = [...finalUsers];
+
+if (donorFromUrl) {
+  const donorIndex = updatedUsers.findIndex(
+    (user) =>
+      user.name?.toLowerCase() ===
+      donorFromUrl.toLowerCase()
+  );
+
+  if (donorIndex !== -1) {
+    // Donor already exists
+    const existingDonor =
+      updatedUsers[donorIndex];
+
+    updatedUsers.splice(donorIndex, 1);
+
+    updatedUsers.unshift({
+      ...existingDonor,
+      phone:
+        existingDonor.phone ||
+        phoneFromUrl ||
+        "",
+      name: donorFromUrl,
+    });
+
+    setSelectedUser({
+      ...existingDonor,
+      phone:
+        existingDonor.phone ||
+        phoneFromUrl ||
+        "",
+      name: donorFromUrl,
+    });
+  } else {
+    // New donor - create conversation
+    const newDonor = {
+      id:
+        phoneFromUrl ||
+        `donor-${Date.now()}`,
+
+      email: "",
+
+      phone:
+        phoneFromUrl || "",
+
+      name:
+        donorFromUrl || "Donor",
+
+      image: null,
+
+      lastMessage:
+        "Start a conversation",
+
+      lastTime:
+        new Date().toISOString(),
+
+      unread: 0,
+    };
+
+    updatedUsers.unshift(newDonor);
+
+    setSelectedUser(newDonor);
+  }
+}
+
+setConversations(updatedUsers);
+
+// Normal behavior when no donor came from URL
+if (
+  !donorFromUrl &&
+  !selectedUser &&
+  updatedUsers.length > 0
+) {
+  setSelectedUser(
+    updatedUsers[0]
+  );
+}
 
   } catch (error) {
 

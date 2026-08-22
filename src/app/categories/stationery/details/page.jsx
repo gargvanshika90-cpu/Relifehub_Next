@@ -451,13 +451,16 @@ export default function ClothesDetailsPage() {
                 title="Original Price"
                 value={product.originalPrice}
               />
-
-              <Info
-                icon={<Gift size={18} />}
-                title="Donation Price"
-                value="FREE"
-                green
-              />
+ <Info 
+  icon={<Gift size={18} />} 
+  title="Donation Price" 
+  value={
+    product.price === 0
+      ? "FREE"
+      : `₹${product.price}`
+  } 
+  green 
+/>
 
               <Info
                 icon={<CalendarDays size={18} />}

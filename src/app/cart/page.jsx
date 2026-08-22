@@ -3,7 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
- import Navbar from "../../../components/navbar";
+
+
 import {
   ShoppingCart,
   Trash2,
@@ -30,26 +31,32 @@ export default function CartPage() {
       loadCart();
     };
 
-    window.addEventListener(
-      "cartUpdated",
-      updateCart
-    );
+    window.addEventListener("cartUpdated", updateCart);
 
     return () => {
-      window.removeEventListener(
-        "cartUpdated",
-        updateCart
-      );
+      window.removeEventListener("cartUpdated", updateCart);
     };
   }, []);
 
-  const loadCart = () => {
-    const savedCart =
-      JSON.parse(
-        localStorage.getItem("cartItems")
-      ) || [];
+  // ==========================================
+  // LOAD CART FROM LOCAL STORAGE
+  // ==========================================
 
-    setCartItems(savedCart);
+  const loadCart = () => {
+    try {
+      const savedCart = JSON.parse(
+        localStorage.getItem("cartItems")
+      );
+
+      if (Array.isArray(savedCart)) {
+        setCartItems(savedCart);
+      } else {
+        setCartItems([]);
+      }
+    } catch (error) {
+      console.error("Error loading cart:", error);
+      setCartItems([]);
+    }
   };
 
   // ==========================================
@@ -58,7 +65,7 @@ export default function CartPage() {
 
   const removeItem = (id) => {
     const updatedCart = cartItems.filter(
-      (item) => item.id !== id
+      (item) => String(item.id) !== String(id)
     );
 
     localStorage.setItem(
@@ -82,20 +89,20 @@ export default function CartPage() {
   };
 
   // ==========================================
-  // CHANGE QUANTITY
+  // INCREASE QUANTITY
   // ==========================================
 
   const increaseQuantity = (id) => {
-    const updatedCart = cartItems.map(
-      (item) =>
-        item.id === id
-          ? {
-              ...item,
-              quantity:
-                Number(item.quantity || 1) + 1,
-            }
-          : item
-    );
+    const updatedCart = cartItems.map((item) => {
+      if (String(item.id) !== String(id)) {
+        return item;
+      }
+
+      return {
+        ...item,
+        quantity: Number(item.quantity || 1) + 1,
+      };
+    });
 
     localStorage.setItem(
       "cartItems",
@@ -103,21 +110,30 @@ export default function CartPage() {
     );
 
     setCartItems(updatedCart);
+
+    window.dispatchEvent(
+      new Event("cartUpdated")
+    );
   };
 
+  // ==========================================
+  // DECREASE QUANTITY
+  // ==========================================
+
   const decreaseQuantity = (id) => {
-    const updatedCart = cartItems.map(
-      (item) =>
-        item.id === id
-          ? {
-              ...item,
-              quantity: Math.max(
-                1,
-                Number(item.quantity || 1) - 1
-              ),
-            }
-          : item
-    );
+    const updatedCart = cartItems.map((item) => {
+      if (String(item.id) !== String(id)) {
+        return item;
+      }
+
+      return {
+        ...item,
+        quantity: Math.max(
+          1,
+          Number(item.quantity || 1) - 1
+        ),
+      };
+    });
 
     localStorage.setItem(
       "cartItems",
@@ -125,6 +141,10 @@ export default function CartPage() {
     );
 
     setCartItems(updatedCart);
+
+    window.dispatchEvent(
+      new Event("cartUpdated")
+    );
   };
 
   // ==========================================
@@ -142,35 +162,62 @@ export default function CartPage() {
       confirmButtonText: "Yes, Clear Cart",
     }).then((result) => {
       if (result.isConfirmed) {
-        localStorage.removeItem(
-          "cartItems"
-        );
+        localStorage.removeItem("cartItems");
 
         setCartItems([]);
 
         window.dispatchEvent(
           new Event("cartUpdated")
         );
+
+        Swal.fire({
+          icon: "success",
+          title: "Cart Cleared",
+          text: "All items have been removed.",
+          timer: 1200,
+          showConfirmButton: false,
+        });
       }
     });
   };
 
   // ==========================================
-  // TOTAL
+  // TOTAL ITEMS
   // ==========================================
 
   const totalItems = cartItems.reduce(
-    (total, item) =>
-      total + Number(item.quantity || 1),
+    (total, item) => {
+      return (
+        total +
+        Number(item.quantity || 1)
+      );
+    },
     0
   );
 
+  // ==========================================
+  // TOTAL PRICE
+  // ==========================================
+
   const totalPrice = cartItems.reduce(
-    (total, item) =>
-      total +
-      Number(item.price || 0) *
-        Number(item.quantity || 1),
+    (total, item) => {
+      const price = Number(item.price || 0);
+
+      const quantity = Number(
+        item.quantity || 1
+      );
+
+      return total + price * quantity;
+    },
     0
+  );
+
+  // ==========================================
+  // CHECK IF CART HAS PAID ITEM
+  // ==========================================
+
+  const hasPaidItem = cartItems.some(
+    (item) => Number(item.price || 0) > 0
   );
 
   // ==========================================
@@ -231,182 +278,337 @@ export default function CartPage() {
   // ==========================================
 
   return (
-    <> 
-    <Navbar></Navbar>
-    <main className="min-h-screen bg-gray-50 py-10">
+  
 
-      <div className="max-w-7xl mx-auto px-6">
+      <main className="min-h-screen bg-gray-50 py-10">
 
-        {/* =====================================
-            HEADER
-        ===================================== */}
+        <div className="max-w-7xl mx-auto px-6">
 
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          {/* =====================================
+              HEADER
+          ===================================== */}
 
-          <div>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
 
-            <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
+            <div>
 
-              <ShoppingCart
-                className="text-green-700"
-                size={36}
-              />
+              <h1 className="text-4xl font-extrabold text-gray-900 flex items-center gap-3">
 
-              My Cart
+                <ShoppingCart
+                  className="text-green-700"
+                  size={36}
+                />
 
-            </h1>
+                My Cart
 
-            <p className="text-gray-500 mt-2">
-              {totalItems} item
-              {totalItems !== 1 ? "s" : ""} in your cart
-            </p>
+              </h1>
+
+              <p className="text-gray-500 mt-2">
+                {totalItems} item
+                {totalItems !== 1 ? "s" : ""} in your cart
+              </p>
+
+            </div>
+
+            <button
+              onClick={clearCart}
+              className="text-red-600 font-semibold hover:text-red-700"
+            >
+              Clear Cart
+            </button>
 
           </div>
 
-          <button
-            onClick={clearCart}
-            className="text-red-600 font-semibold hover:text-red-700"
-          >
-            Clear Cart
-          </button>
+          {/* =====================================
+              MAIN GRID
+          ===================================== */}
 
-        </div>
+          <div className="grid lg:grid-cols-3 gap-7">
 
+            {/* ===================================
+                CART ITEMS
+            =================================== */}
 
-        {/* =====================================
-            MAIN GRID
-        ===================================== */}
+            <div className="lg:col-span-2 space-y-5">
 
-        <div className="grid lg:grid-cols-3 gap-7">
+              {cartItems.map((item) => {
 
-          {/* ===================================
-              CART ITEMS
-          =================================== */}
+                const itemPrice =
+                  Number(item.price || 0);
 
-          <div className="lg:col-span-2 space-y-5">
+                const itemQuantity =
+                  Number(item.quantity || 1);
 
-            {cartItems.map((item) => (
+                const itemTotal =
+                  itemPrice * itemQuantity;
 
-              <div
-                key={item.id}
-                className="bg-white rounded-2xl border shadow-sm p-5"
-              >
+                return (
+                  <div
+                    key={item.id}
+                    className="bg-white rounded-2xl border shadow-sm p-5"
+                  >
 
-                <div className="flex flex-col sm:flex-row gap-5">
+                    <div className="flex flex-col sm:flex-row gap-5">
 
-                  {/* IMAGE */}
+                      {/* IMAGE */}
 
-                  <div className="w-full sm:w-40 h-40 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden">
+                      <div className="w-full sm:w-40 h-40 bg-gray-50 rounded-xl flex items-center justify-center overflow-hidden">
 
-                    <Image
-                      src={item.image}
-                      alt={item.name}
-                      width={160}
-                      height={160}
-                      className="w-full h-full object-contain"
+                        <Image
+                          src={
+                            item.image ||
+                            "/placeholder.png"
+                          }
+                          alt={
+                            item.name ||
+                            "Cart Item"
+                          }
+                          width={160}
+                          height={160}
+                          className="w-full h-full object-contain"
+                        />
+
+                      </div>
+
+                      {/* DETAILS */}
+
+                      <div className="flex-1">
+
+                        <div className="flex justify-between gap-4">
+
+                          <div>
+
+                            <h2 className="text-xl font-bold text-gray-900">
+                              {item.name ||
+                                "Donation Item"}
+                            </h2>
+
+                            <p className="text-gray-500 mt-1">
+                              {item.category ||
+                                "Category"}
+                            </p>
+
+                          </div>
+
+                          {/* REMOVE */}
+
+                          <button
+                            onClick={() =>
+                              removeItem(item.id)
+                            }
+                            className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-600"
+                            title="Remove item"
+                          >
+                            <Trash2 size={20} />
+                          </button>
+
+                        </div>
+
+                        {/* =================================
+                            PRICE
+                        ================================= */}
+
+                        {itemPrice > 0 ? (
+
+                          <p className="text-xl font-bold text-green-700 mt-4">
+                            ₹{itemPrice}
+                          </p>
+
+                        ) : (
+
+                          <p className="text-xl font-bold text-green-700 mt-4">
+                            FREE
+                          </p>
+
+                        )}
+
+                        {/* =================================
+                            QUANTITY
+                        ================================= */}
+
+                        <div className="flex items-center justify-between mt-5">
+
+                          <div className="flex items-center border rounded-xl overflow-hidden">
+
+                            <button
+                              onClick={() =>
+                                decreaseQuantity(
+                                  item.id
+                                )
+                              }
+                              className="w-10 h-10 flex items-center justify-center hover:bg-gray-100"
+                            >
+                              <Minus size={16} />
+                            </button>
+
+                            <span className="w-12 text-center font-semibold">
+                              {itemQuantity}
+                            </span>
+
+                            <button
+                              onClick={() =>
+                                increaseQuantity(
+                                  item.id
+                                )
+                              }
+                              className="w-10 h-10 flex items-center justify-center hover:bg-gray-100"
+                            >
+                              <Plus size={16} />
+                            </button>
+
+                          </div>
+
+                          {/* ITEM TOTAL */}
+
+                          {itemPrice > 0 && (
+
+                            <p className="font-bold text-gray-900">
+                              ₹{itemTotal}
+                            </p>
+
+                          )}
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </div>
+                );
+              })}
+
+            </div>
+
+            {/* ===================================
+                ORDER SUMMARY
+            =================================== */}
+
+            <div>
+
+              <div className="bg-white rounded-2xl border shadow-sm p-6 sticky top-6">
+
+                <h2 className="text-2xl font-bold">
+                  Order Summary
+                </h2>
+
+                {/* ITEMS */}
+
+                <div className="flex justify-between mt-6 text-gray-600">
+
+                  <span>
+                    Items
+                  </span>
+
+                  <span>
+                    {totalItems}
+                  </span>
+
+                </div>
+
+                {/* SUBTOTAL */}
+
+                <div className="flex justify-between mt-4 text-gray-600">
+
+                  <span>
+                    Subtotal
+                  </span>
+
+                  <span>
+
+                    {hasPaidItem
+                      ? `₹${totalPrice}`
+                      : "FREE"}
+
+                  </span>
+
+                </div>
+
+                {/* DELIVERY */}
+
+                <div className="flex justify-between mt-4 text-gray-600">
+
+                  <span>
+                    Delivery
+                  </span>
+
+                  <span className="text-green-700 font-semibold">
+                    FREE
+                  </span>
+
+                </div>
+
+                <hr className="my-6" />
+
+                {/* TOTAL */}
+
+                <div className="flex justify-between text-xl font-bold">
+
+                  <span>
+                    Total
+                  </span>
+
+                  <span className="text-green-700">
+
+                    {hasPaidItem
+                      ? `₹${totalPrice}`
+                      : "FREE"}
+
+                  </span>
+
+                </div>
+
+                {/* CHECKOUT */}
+
+                <button
+                  onClick={() => {
+
+                    Swal.fire({
+                      icon: "success",
+                      title:
+                        "Proceeding to Checkout",
+                      text:
+                        "Your order is ready.",
+                      confirmButtonColor:
+                        "#15803d",
+                    });
+
+                  }}
+                  className="w-full bg-green-700 text-white rounded-xl py-4 font-bold mt-7 hover:bg-green-800"
+                >
+                  Proceed to Checkout
+                </button>
+
+                {/* CONTINUE SHOPPING */}
+
+                <Link
+                  href="/categories/clothes"
+                  className="w-full mt-4 flex justify-center items-center gap-2 border-2 border-green-700 text-green-700 rounded-xl py-3 font-semibold hover:bg-green-50"
+                >
+                  <ArrowLeft size={18} />
+                  Continue Shopping
+                </Link>
+
+                {/* TRUST */}
+
+                <div className="bg-green-50 rounded-xl p-4 mt-6">
+
+                  <div className="flex gap-3">
+
+                    <ShieldCheck
+                      className="text-green-700 shrink-0"
+                      size={24}
                     />
 
-                  </div>
+                    <div>
 
-
-                  {/* DETAILS */}
-
-                  <div className="flex-1">
-
-                    <div className="flex justify-between gap-4">
-
-                      <div>
-
-                        <h2 className="text-xl font-bold text-gray-900">
-                          {item.name}
-                        </h2>
-
-                        <p className="text-gray-500 mt-1">
-                          {item.category}
-                        </p>
-
-                      </div>
-
-                      {/* X REMOVE */}
-
-                      <button
-                        onClick={() =>
-                          removeItem(item.id)
-                        }
-                        className="w-10 h-10 rounded-full flex items-center justify-center text-gray-500 hover:bg-red-50 hover:text-red-600"
-                        title="Remove item"
-                      >
-                        <Trash2 size={20} />
-                      </button>
-
-                    </div>
-
-
-                    {/* PRICE */}
-
-                    {Number(item.price) > 0 ? (
-
-                      <p className="text-xl font-bold text-green-700 mt-4">
-                        ₹{item.price}
+                      <p className="font-semibold text-green-800">
+                        Safe & Trusted
                       </p>
 
-                    ) : (
-
-                      <p className="text-xl font-bold text-green-700 mt-4">
-                        FREE
+                      <p className="text-sm text-gray-500 mt-1">
+                        Your cart and donation items are secure.
                       </p>
-
-                    )}
-
-
-                    {/* QUANTITY */}
-
-                    <div className="flex items-center justify-between mt-5">
-
-                      <div className="flex items-center border rounded-xl overflow-hidden">
-
-                        <button
-                          onClick={() =>
-                            decreaseQuantity(
-                              item.id
-                            )
-                          }
-                          className="w-10 h-10 flex items-center justify-center hover:bg-gray-100"
-                        >
-                          <Minus size={16} />
-                        </button>
-
-                        <span className="w-12 text-center font-semibold">
-                          {item.quantity || 1}
-                        </span>
-
-                        <button
-                          onClick={() =>
-                            increaseQuantity(
-                              item.id
-                            )
-                          }
-                          className="w-10 h-10 flex items-center justify-center hover:bg-gray-100"
-                        >
-                          <Plus size={16} />
-                        </button>
-
-                      </div>
-
-
-                      {/* ITEM TOTAL */}
-
-                      {Number(item.price) > 0 && (
-
-                        <p className="font-bold text-gray-900">
-                          ₹
-                          {Number(item.price) *
-                            Number(
-                              item.quantity || 1
-                            )}
-                        </p>
-
-                      )}
 
                     </div>
 
@@ -414,164 +616,28 @@ export default function CartPage() {
 
                 </div>
 
-              </div>
+                {/* DONATION */}
 
-            ))}
+                <div className="bg-blue-50 rounded-xl p-4 mt-4">
 
-          </div>
+                  <div className="flex gap-3">
 
+                    <Gift
+                      className="text-blue-700 shrink-0"
+                      size={24}
+                    />
 
-          {/* ===================================
-              ORDER SUMMARY
-          =================================== */}
+                    <div>
 
-          <div>
+                      <p className="font-semibold text-blue-800">
+                        Donation Items
+                      </p>
 
-            <div className="bg-white rounded-2xl border shadow-sm p-6 sticky top-6">
+                      <p className="text-sm text-gray-500 mt-1">
+                        Donation items are available free of cost.
+                      </p>
 
-              <h2 className="text-2xl font-bold">
-                Order Summary
-              </h2>
-
-
-              <div className="flex justify-between mt-6 text-gray-600">
-
-                <span>
-                  Items
-                </span>
-
-                <span>
-                  {totalItems}
-                </span>
-
-              </div>
-
-
-              <div className="flex justify-between mt-4 text-gray-600">
-
-                <span>
-                  Subtotal
-                </span>
-
-                <span>
-                  {totalPrice === 0
-                    ? "FREE"
-                    : `₹${totalPrice}`}
-                </span>
-
-              </div>
-
-
-              <div className="flex justify-between mt-4 text-gray-600">
-
-                <span>
-                  Delivery
-                </span>
-
-                <span className="text-green-700 font-semibold">
-                  FREE
-                </span>
-
-              </div>
-
-
-              <hr className="my-6" />
-
-
-              <div className="flex justify-between text-xl font-bold">
-
-                <span>
-                  Total
-                </span>
-
-                <span className="text-green-700">
-
-                  {totalPrice === 0
-                    ? "FREE"
-                    : `₹${totalPrice}`}
-
-                </span>
-
-              </div>
-
-
-              {/* CHECKOUT */}
-
-              <button
-                onClick={() => {
-                  Swal.fire({
-                    icon: "success",
-                    title: "Proceeding to Checkout",
-                    text: "Your order is ready.",
-                    confirmButtonColor:
-                      "#15803d",
-                  });
-                }}
-                className="w-full bg-green-700 text-white rounded-xl py-4 font-bold mt-7 hover:bg-green-800"
-              >
-                Proceed to Checkout
-              </button>
-
-
-              {/* CONTINUE */}
-
-              <Link
-                href="/categories/clothes"
-                className="w-full mt-4 flex justify-center items-center gap-2 border-2 border-green-700 text-green-700 rounded-xl py-3 font-semibold hover:bg-green-50"
-              >
-                <ArrowLeft size={18} />
-                Continue Shopping
-              </Link>
-
-
-              {/* TRUST */}
-
-              <div className="bg-green-50 rounded-xl p-4 mt-6">
-
-                <div className="flex gap-3">
-
-                  <ShieldCheck
-                    className="text-green-700 shrink-0"
-                    size={24}
-                  />
-
-                  <div>
-
-                    <p className="font-semibold text-green-800">
-                      Safe & Trusted
-                    </p>
-
-                    <p className="text-sm text-gray-500 mt-1">
-                      Your cart and donation items are secure.
-                    </p>
-
-                  </div>
-
-                </div>
-
-              </div>
-
-
-              {/* DONATION */}
-
-              <div className="bg-blue-50 rounded-xl p-4 mt-4">
-
-                <div className="flex gap-3">
-
-                  <Gift
-                    className="text-blue-700 shrink-0"
-                    size={24}
-                  />
-
-                  <div>
-
-                    <p className="font-semibold text-blue-800">
-                      Donation Items
-                    </p>
-
-                    <p className="text-sm text-gray-500 mt-1">
-                      Donation items are available free of cost.
-                    </p>
+                    </div>
 
                   </div>
 
@@ -585,9 +651,7 @@ export default function CartPage() {
 
         </div>
 
-      </div>
-
-    </main>
-    </>
+      </main>
+    
   );
 }

@@ -320,9 +320,13 @@ const handleRequestDonation = () => {
 // SEND REQUEST
 // ==========================================
 
-const sendRequest = async () => {
+const sendRequest = () => {
   try {
     const savedUser = localStorage.getItem("user");
+
+    // ==========================================
+    // LOGIN CHECK
+    // ==========================================
 
     if (!savedUser) {
       alert("Please Login first.");
@@ -333,7 +337,7 @@ const sendRequest = async () => {
     const user = JSON.parse(savedUser);
 
     // ==========================================
-    // CHECK QUANTITY
+    // QUANTITY CHECK
     // ==========================================
 
     if (!quantity || Number(quantity) <= 0) {
@@ -341,6 +345,7 @@ const sendRequest = async () => {
       return;
     }
 
+    // Clothes = only 1 item
     if (Number(quantity) > 1) {
       alert(
         "This clothing item is available only as one item."
@@ -349,69 +354,22 @@ const sendRequest = async () => {
     }
 
     // ==========================================
-    // GET COMPLETE BUYER PROFILE
-    // ==========================================
-
-    let buyer = {
-      ...user,
-      phone: user.phone || "",
-      address: user.address || "",
-      city: user.city || "",
-      state: user.state || "",
-      pincode: user.pincode || "",
-      image: user.image || null,
-    };
-
-    // Fetch latest profile from database
-    if (user.id) {
-      try {
-        const profileResponse = await fetch(
-          `/api/users/${user.id}`
-        );
-
-        if (profileResponse.ok) {
-          const profileData =
-            await profileResponse.json();
-
-          // Supports both:
-          // { user: {...} }
-          // and
-          // {...}
-          const profile =
-            profileData.user || profileData;
-
-          buyer = {
-            ...buyer,
-            ...profile,
-          };
-        }
-      } catch (profileError) {
-        console.error(
-          "Could not load buyer profile:",
-          profileError
-        );
-      }
-    }
-
-    console.log("COMPLETE BUYER:", buyer);
-
-    // ==========================================
     // BUYER NAME
     // ==========================================
 
     const requesterName =
       [
-        buyer.firstName,
-        buyer.lastName,
+        user.firstName,
+        user.lastName,
       ]
         .filter(Boolean)
         .join(" ")
         .trim() ||
-      buyer.name ||
+      user.name ||
       "Buyer";
 
     // ==========================================
-    // DONOR DETAILS
+    // DONOR INFORMATION
     // ==========================================
 
     const donorName =
@@ -430,28 +388,85 @@ const sendRequest = async () => {
       "";
 
     // ==========================================
-    // CREATE REQUEST
+    // GET ALL OLD REQUESTS
     // ==========================================
 
-    const now = new Date().toISOString();
+    const oldRequests =
+      JSON.parse(
+        localStorage.getItem("donationRequests")
+      ) || [];
+
+    // ==========================================
+    // IMPORTANT:
+    // CHECK IF THIS ITEM IS ALREADY APPROVED
+    // ==========================================
+
+    const itemAlreadyApproved =
+      oldRequests.some(
+        (request) =>
+          String(request.productId) ===
+            String(product.id) &&
+          request.status === "Approved"
+      );
+
+    if (itemAlreadyApproved) {
+      alert(
+        "Sorry! This item has already been donated to another buyer."
+      );
+      return;
+    }
+
+    // ==========================================
+    // CHECK IF THIS BUYER ALREADY REQUESTED IT
+    // ==========================================
+
+    const alreadyRequested =
+      oldRequests.some(
+        (request) =>
+          String(request.productId) ===
+            String(product.id) &&
+          (
+            String(request.requesterId) ===
+              String(user.id) ||
+            (
+              request.requesterEmail &&
+              request.requesterEmail.toLowerCase() ===
+                (user.email || "").toLowerCase()
+            )
+          ) &&
+          (
+            request.status === "Pending" ||
+            request.status === "Approved"
+          )
+      );
+
+    if (alreadyRequested) {
+      alert(
+        "You have already requested this item."
+      );
+      return;
+    }
+
+    // ==========================================
+    // NEW REQUEST
+    // ==========================================
 
     const newRequest = {
+      // Unique request ID
       id: Date.now().toString(),
 
       // ========================================
-      // ITEM
+      // ITEM DETAILS
       // ========================================
 
       productId: product.id,
 
       productName:
         product.name ||
-        product.itemName ||
         "Clothes Item",
 
       itemName:
         product.name ||
-        product.itemName ||
         "Clothes Item",
 
       productImage:
@@ -461,18 +476,29 @@ const sendRequest = async () => {
 
       quantity: 1,
 
-      size: product.size || "",
+      size:
+        product.size || "",
 
-      color: product.color || "",
+      color:
+        product.color || "",
+
+      material:
+        product.material || "",
+
+      brand:
+        product.brand || "",
 
       condition:
         product.condition || "",
+
+      originalPrice:
+        product.originalPrice || "",
 
       description:
         product.description || "",
 
       // ========================================
-      // DONOR
+      // DONOR DETAILS
       // ========================================
 
       donorId: donorId,
@@ -488,61 +514,50 @@ const sendRequest = async () => {
         product.donorImage || null,
 
       // ========================================
-      // BUYER
+      // BUYER DETAILS
       // ========================================
 
       requesterId:
-        buyer.id || user.id || "",
+        user.id || "",
 
       requesterName:
         requesterName,
 
       requesterEmail:
-        buyer.email || user.email || "",
+        user.email || "",
 
       requesterImage:
-        buyer.image || null,
+        user.image || null,
 
       requesterPhone:
-        buyer.phone || "",
+        user.phone || "",
 
+      // Keep buyerPhone also because
+      // your request page uses it
       buyerPhone:
-        buyer.phone || "",
+        user.phone || "",
 
       // ========================================
       // BUYER ADDRESS
       // ========================================
 
       address:
-        buyer.address || "",
+        user.address || "",
 
       buyerAddress:
-        buyer.address || "",
+        user.address || "",
 
       city:
-        buyer.city || "",
+        user.city || "",
 
       state:
-        buyer.state || "",
+        user.state || "",
 
       pincode:
-        buyer.pincode || "",
+        user.pincode || "",
 
       // ========================================
-      // BUYER COMPLETE ADDRESS
-      // ========================================
-
-      fullAddress: [
-        buyer.address,
-        buyer.city,
-        buyer.state,
-        buyer.pincode,
-      ]
-        .filter(Boolean)
-        .join(", "),
-
-      // ========================================
-      // MESSAGE
+      // BUYER MESSAGE
       // ========================================
 
       message:
@@ -555,54 +570,17 @@ const sendRequest = async () => {
 
       status: "Pending",
 
-      createdAt: now,
+      createdAt:
+        new Date().toISOString(),
 
-      updatedAt: now,
+      updatedAt:
+        new Date().toISOString(),
     };
 
     console.log(
       "NEW DONATION REQUEST:",
       newRequest
     );
-
-    // ==========================================
-    // GET OLD REQUESTS
-    // ==========================================
-
-    const oldRequests =
-      JSON.parse(
-        localStorage.getItem(
-          "donationRequests"
-        )
-      ) || [];
-
-    // ==========================================
-    // CHECK DUPLICATE
-    // ==========================================
-
-    const alreadyRequested =
-      oldRequests.some(
-        (request) =>
-          String(request.productId) ===
-            String(newRequest.productId) &&
-          String(
-            request.requesterId ||
-              request.requesterEmail
-          ) ===
-            String(
-              newRequest.requesterId ||
-                newRequest.requesterEmail
-            ) &&
-          request.status !== "Rejected"
-      );
-
-    if (alreadyRequested) {
-      alert(
-        "You have already requested this item."
-      );
-
-      return;
-    }
 
     // ==========================================
     // SAVE REQUEST
@@ -618,17 +596,24 @@ const sendRequest = async () => {
       JSON.stringify(updatedRequests)
     );
 
-    console.log(
-      "REQUEST SAVED:",
+    // ==========================================
+    // CHECK SAVE
+    // ==========================================
+
+    const verify =
       JSON.parse(
         localStorage.getItem(
           "donationRequests"
         )
-      )
+      ) || [];
+
+    console.log(
+      "REQUESTS SAVED:",
+      verify
     );
 
     // ==========================================
-    // EVENT
+    // NOTIFY REQUEST PAGE
     // ==========================================
 
     window.dispatchEvent(
@@ -636,12 +621,16 @@ const sendRequest = async () => {
     );
 
     // ==========================================
-    // RESET
+    // RESET POPUP
     // ==========================================
 
     setShowRequest(false);
     setQuantity("1");
     setMessage("");
+
+    // ==========================================
+    // SUCCESS
+    // ==========================================
 
     alert(
       "Donation request sent successfully! ❤️"
@@ -666,7 +655,6 @@ const sendRequest = async () => {
     );
   }
 };
-
   return (
     <main className="min-h-screen bg-gray-50 py-10">
 
@@ -804,12 +792,12 @@ const sendRequest = async () => {
                 value={product.originalPrice}
               />
 
-              <Info
-                icon={<Gift size={18} />}
-                title="Donation Price"
-                value="FREE"
-                green
-              />
+              <Info 
+  icon={<Gift size={18} />} 
+  title="Donation Price" 
+  value={`₹${product.price}`} 
+  green 
+/>
 
               <Info
                 icon={<CalendarDays size={18} />}
@@ -989,13 +977,17 @@ const sendRequest = async () => {
 
               </button>
 
-              <button className="border rounded-xl px-5 py-3 flex items-center gap-2 hover:bg-gray-50">
-
-                <MessageCircle size={18} />
-
-                Chat
-
-              </button>
+                <Link
+  href={`/dashboard/messages?donor=${encodeURIComponent(
+    product.donorName
+  )}&phone=${encodeURIComponent(
+    product.donorPhone
+  )}`}
+  className="border rounded-xl px-5 py-3 flex items-center gap-2 hover:bg-gray-50"
+>
+  <MessageCircle size={18} />
+  Chat
+</Link>
 
             </div>
 

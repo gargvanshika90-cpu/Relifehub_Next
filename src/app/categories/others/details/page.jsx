@@ -439,12 +439,16 @@ export default function ClothesDetailsPage() {
                 value={product.originalPrice}
               />
 
-              <Info
-                icon={<Gift size={18} />}
-                title="Donation Price"
-                value="FREE"
-                green
-              />
+              <Info 
+               icon={<Gift size={18} />} 
+               title="Donation Price" 
+               value={
+                 product.price === 0
+                   ? "FREE"
+                   : `₹${product.price}`
+               } 
+               green 
+             />
 
               <Info
                 icon={<CalendarDays size={18} />}
@@ -624,13 +628,17 @@ export default function ClothesDetailsPage() {
 
               </button>
 
-              <button className="border rounded-xl px-5 py-3 flex items-center gap-2 hover:bg-gray-50">
-
-                <MessageCircle size={18} />
-
-                Chat
-
-              </button>
+     <Link
+  href={`/dashboard/messages?donor=${encodeURIComponent(
+    product.donorName
+  )}&phone=${encodeURIComponent(
+    product.donorPhone
+  )}`}
+  className="border rounded-xl px-5 py-3 flex items-center gap-2 hover:bg-gray-50"
+>
+  <MessageCircle size={18} />
+  Chat
+</Link>
 
             </div>
 

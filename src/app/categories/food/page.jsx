@@ -343,20 +343,24 @@ const toggleFavorite = (product) => {
               </div>
 
               <div className="flex gap-2 mt-5">
+<div className="flex items-center gap-2 w-full">
+  {/* ADD TO CART */}
+  <button
+    onClick={() => addToCart(product)}
+    className="flex-1 h-14 bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition"
+  >
+    <ShoppingCart size={18} />
+    Add to Cart
+  </button>
 
-                <button className="flex-1 border border-green-700 text-green-700 rounded-lg py-2 text-sm font-semibold hover:bg-green-50 flex items-center justify-center gap-2">
-
-                  <ShoppingCart size={16}/>
-                  Add
-
-                </button>
-
-                <Link
-  href={`/categories/food/details?id=${item.id}`}
-  className="flex-1 bg-green-700 text-white rounded-lg py-2 text-sm font-semibold hover:bg-green-800 flex items-center justify-center"
->
-  Buy
-</Link>
+  {/* BUY */}
+  <Link
+    href={`/categories/food/details?id=${item.id}`}
+    className="flex-1 h-14 bg-green-700 hover:bg-green-800 text-white rounded-xl font-semibold flex items-center justify-center transition"
+  >
+    Buy
+  </Link>
+</div>
 
               </div>
 
